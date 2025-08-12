@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+beautifulsoup4
+pydantic
+selenium 
+requests>=2.31.0
+pandas>=2.0.0
+dbfpy>=0.99.0
+pathlib2>=2.3.7 

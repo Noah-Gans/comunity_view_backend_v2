@@ -1,0 +1,32 @@
+{
+  "county_parcel_id": "",
+  "tax_id": "",
+  "physical_address": "",
+  "mailing_address": "",
+  "owner_name": "",
+  "deed": "",
+  "legal": {
+    "subdivision": "",
+    "lot": "",
+    "block": "",
+    "section": "",
+    "township": "",
+    "range": "",
+    "location": ""
+  },
+  "tax_district": "",
+  "total_acres": "",
+  "acreage_breakdown": {
+    "residential": 0.0,
+    "agricultural": 0.0,
+    "commercial": 0.0,
+    "industrial": 0.0,
+    "other": 0.0
+  },
+  "value_summary": {
+    "total_value": "",
+    "land": "",
+    "developments": ""
+  },
+  "developments": []
+}

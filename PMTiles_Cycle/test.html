@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teton County WY Tiles Test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .info { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="info">
+        <h3>Teton County WY Tiles</h3>
+        <p>Zoom: <span id="zoom">7</span></p>
+        <p>Center: <span id="center">-110.78, 43.47</span></p>
+        <p>Source: <span id="source">combined_ownership</span></p>
+        <p>Server: <span id="server">104.197.206.187:3000</span></p>
+        <p>Status: <span id="status" style="color: green;">✅ Connected</span></p>
+    </div>
+
+    <script>
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'combined_ownership': {
+                        type: 'vector',
+                        url: 'http://104.197.206.187:3000/combined_ownership'
+                    }
+                },
+                layers: [
+                    {
+                        id: 'parcels',
+                        type: 'fill',
+                        source: 'combined_ownership',
+                        'source-layer': 'combined_ownership',
+                        paint: {
+                            'fill-color': '#ff0000',
+                            'fill-opacity': 0.7,
+                            'fill-outline-color': '#000000'
+                        }
+                    }
+                ]
+            },
+            center: [-110.78, 43.47], // Teton County center
+            zoom: 7,
+            minZoom: 7,
+            maxZoom: 15
+        });
+
+        // Update info panel
+        map.on('zoom', () => {
+            document.getElementById('zoom').textContent = map.getZoom().toFixed(2);
+        });
+
+        map.on('move', () => {
+            const center = map.getCenter();
+            document.getElementById('center').textContent = `${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}`;
+        });
+
+        // Add navigation controls
+        map.addControl(new maplibregl.NavigationControl());
+        map.addControl(new maplibregl.FullscreenControl());
+
+        // Test tile loading
+        map.on('load', () => {
+            console.log('Map loaded! Tiles served from VM at 104.197.206.187:3000');
+            document.getElementById('status').textContent = '✅ Map Loaded from VM';
+        });
+
+        map.on('error', (e) => {
+            console.error('Map error:', e);
+            document.getElementById('status').textContent = '❌ Error: ' + e.error.message;
+            document.getElementById('status').style.color = 'red';
+        });
+    </script>
+</body>
+</html>

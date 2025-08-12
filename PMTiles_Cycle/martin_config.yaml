@@ -1,0 +1,4 @@
+pmtiles:
+  sources:
+    combined_ownership: /Users/noahgans/tiles/latest/combined_ownership.pmtiles
+    teton_county_wy: /Users/noahgans/tiles/latest/teton_county_wy_ownership.pmtiles
