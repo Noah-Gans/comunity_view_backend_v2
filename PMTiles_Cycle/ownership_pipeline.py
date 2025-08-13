@@ -142,8 +142,8 @@ class OwnershipPipeline:
         return str(combined_file)
     
     def generate_pmtiles(self, county_list=None):
-        """Generate PMTiles from processed GeoJSON files - combines all counties into single ownership layer"""
-        print("🔄 Generating PMTiles from GeoJSON files...")
+        """Generate PMTiles from processed GeoJSON files with three-stage detail optimization"""
+        print("🔄 Generating PMTiles from GeoJSON files with three-stage detail optimization...")
         
         # If no county list provided, use all available counties
         if county_list is None:
@@ -151,17 +151,64 @@ class OwnershipPipeline:
         
         # First combine all counties into a single GeoJSON
         combined_file = self.combine_county_geojsons(county_list)
+        print(f"Combined file: {combined_file}")
         if not combined_file:
             print("❌ Failed to combine county data")
             return None
         
-        # Create tiles directory for Martin to serve from (same as main.py)
+        # Create tiles directory for Martin to serve from
         tiles_dir = Path.home() / "tiles"
         tiles_dir.mkdir(parents=True, exist_ok=True)
         print(f"📁 Tiles will be output to: {tiles_dir}")
         
-        # Generate MBTiles v2 using tippecanoe with same settings as main.py
-        print("🔄 Generating MBTiles v2 using tippecanoe...")
+        # Stage 1: Generate tiles for zoom levels 6-12 with moderate simplification
+        print("📊 Stage 1: Generating low zoom tiles (6-12) with moderate simplification...")
+        tile_output_low = tiles_dir / "tiles_low.mbtiles"
+        subprocess.run([
+            'tippecanoe',
+            '-o', str(tile_output_low),
+            '--maximum-zoom', '12',
+            '--minimum-zoom', '6',  # ← Your original min zoom
+            '--simplify-only-low-zooms',  # Apply simplifications only to lower zooms
+            '--coalesce-smallest-as-needed',  # Coalesce smaller features to reduce detail but retain structure
+            '--simplification=5',  # ← Your original simplification value
+            '--no-tile-size-limit',  # Allow larger tiles
+            '--force',
+            str(combined_file)
+        ], check=True)
+        print(f"✅ Lower zoom levels processed (6-12): {tile_output_low}")
+
+        # Stage 2: Generate tiles for zoom levels 13-16 with less simplification
+        print("📊 Stage 2: Generating mid zoom tiles (13-16) with less simplification...")
+        tile_output_mid = tiles_dir / "tiles_mid.mbtiles"
+        subprocess.run([
+            'tippecanoe',
+            '-o', str(tile_output_mid),
+            '--minimum-zoom', '13',
+            '--maximum-zoom', '16',
+            '--coalesce-smallest-as-needed',  # Coalesce for more compact but detailed representation
+            '--no-tile-size-limit',  # Allow larger tiles for high zooms
+            '--force',
+            str(combined_file)
+        ], check=True)
+        print(f"✅ Mid zoom levels processed (13-16): {tile_output_mid}")
+
+        # Stage 3: Generate tiles for zoom level 17 with no simplification
+        print("📊 Stage 3: Generating high zoom tiles (17) with no simplification...")
+        tile_output_high = tiles_dir / "tiles_high.mbtiles"
+        subprocess.run([
+            'tippecanoe',
+            '-o', str(tile_output_high),
+            '--minimum-zoom', '17',
+            '--maximum-zoom', '17',
+            '--no-tile-size-limit',
+            '--force',
+            str(combined_file)
+        ], check=True)
+        print(f"✅ High zoom level processed (17): {tile_output_high}")
+
+        # Stage 4: Merge the tilesets into a single MBTiles file
+        print("🔄 Stage 4: Merging tilesets into single MBTiles...")
         mbtiles_file = tiles_dir / "combined_ownership.mbtiles"
         
         # Remove old file if it exists
@@ -169,46 +216,43 @@ class OwnershipPipeline:
             mbtiles_file.unlink()
             print("🗑️ Removed old MBTiles file")
         
-        cmd = [
-            "tippecanoe",
-            "-o", str(mbtiles_file),
-            "-l", "combined_ownership",  # Layer name
-            "-n", "combined_ownership",  # Source name
-            "-Z", "7",                   # Minimum zoom (same as main.py)
-            "-z", "15",                  # Maximum zoom (same as main.py)
-            "--drop-densest-as-needed",
-            "--extend-zooms-if-still-dropping",
-            "--coalesce",
-            "--coalesce-densest-as-needed",
-            "--detect-shared-borders",
-            "--force",                   # Force overwrite
-            combined_file
-        ]
+        subprocess.run([
+            'tile-join',
+            '--force',
+            '--no-tile-size-limit',  # Ensure merged tiles have no size limits
+            '-o', str(mbtiles_file),
+            str(tile_output_low),
+            str(tile_output_mid),
+            str(tile_output_high)
+        ], check=True)
+        print("✅ Tilesets merged successfully!")
         
-        subprocess.run(cmd, check=True, timeout=7200)
-        print("✅ MBTiles v2 generated successfully!")
+        # Clean up intermediate MBTiles files
+        tile_output_low.unlink()
+        tile_output_mid.unlink()
+        tile_output_high.unlink()
+        print("🗑️ Cleaned up intermediate MBTiles files")
         
-        # Convert MBTiles to PMTiles using Python library (same as main.py)
+        # Convert MBTiles to PMTiles using Python library
         print("🔄 Converting MBTiles to PMTiles...")
         pmtiles_file = tiles_dir / "combined_ownership.pmtiles"
         
         try:
             from pmtiles import convert
             print(f"Converting {mbtiles_file} to {pmtiles_file}")
-            convert.mbtiles_to_pmtiles(str(mbtiles_file), str(pmtiles_file), maxzoom=15)
+            convert.mbtiles_to_pmtiles(str(mbtiles_file), str(pmtiles_file), maxzoom=17)  # ← Updated to 17
             
             # Verify the file was created and has content
             if pmtiles_file.exists() and pmtiles_file.stat().st_size > 0:
                 print("✅ PMTiles conversion completed!")
                 print(f"PMTiles file size: {pmtiles_file.stat().st_size} bytes")
                 
-                # Clean up MBTiles file (same as main.py)
+                # Clean up MBTiles file
                 if mbtiles_file.exists():
                     mbtiles_file.unlink()
                     print("🗑️ Cleaned up MBTiles file")
                 
                 print(f"📊 Combined {len(county_list)} counties into single ownership layer")
-                print(f"📈 Total features processed: {total_features:,}")
                 
                 return str(pmtiles_file)
             else:
