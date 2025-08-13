@@ -13,4 +13,3 @@ pyproj==3.6.1
 # Removed gdal (not needed for PMTiles generation)
 # Note: tippecanoe and pmtiles will be installed in Cloud Functions environment
 
-gdal==3.9.0

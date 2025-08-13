@@ -62,20 +62,25 @@ check_martin_server() {
 }
 
 # Function to reload Martin server
-reload_martin_server() {
-    if check_martin_server; then
-        log "🔄 Reloading Martin server..."
-        # Send SIGHUP to reload configuration
-        pkill -HUP -f "martin" || warning "Could not send SIGHUP to Martin server"
-        sleep 2
-        
-        if check_martin_server; then
-            log "✅ Martin server reloaded successfully"
-        else
-            warning "Martin server may not have reloaded properly"
-        fi
+restart_martin_server() {
+    log "🔄 Restarting Martin server with new tiles..."
+    
+    # Stop existing Martin server
+    pkill -f "martin" || log "No existing Martin server found"
+    sleep 2
+    
+    # Start new Martin server with updated tiles
+    cd "$TILES_BASE_DIR"
+    nohup martin combined_ownership.pmtiles --listen-addresses 0.0.0.0:3000 --webui enable-for-all > "$SCRIPT_DIR/martin.log" 2>&1 &
+    
+    # Wait for server to start
+    sleep 5
+    
+    # Verify server is running
+    if pgrep -f "martin" > /dev/null; then
+        log "✅ Martin server restarted successfully with new tiles"
     else
-        warning "Martin server is not running - new tiles will be available on next restart"
+        error "Failed to restart Martin server"
     fi
 }
 
@@ -179,8 +184,8 @@ EOF
     log "✅ Martin config updated to point to latest tiles"
     
     # Step 4: Reload Martin server
-    log "🔄 Step 4: Reloading Martin server..."
-    reload_martin_server
+    log "⚙️ Step 4: Restarting Martin server..."
+    restart_martin_server
     
     # Step 5: Regenerate search index
     log "🔍 Step 5: Regenerating search index..."

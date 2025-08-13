@@ -114,6 +114,33 @@ def run_ownership_pipeline(county_list=None, skip_data_collection=False, skip_gc
         pipeline = OwnershipPipeline()
         
         if skip_data_collection:
+            if county_list:
+                counties_with_data = []
+                for county in county_list:
+                    geojson_path = pipeline.pmtiles_cycle_dir / "geojsons_for_db_upload" / f"{county}_data_files" / f"{county}_final_ownership.geojson"
+                    if geojson_path.exists():
+                        counties_with_data.append(county)
+                        size_mb = geojson_path.stat().st_size / (1024 * 1024)
+                        print(f"  ✅ {county}: {size_mb:.1f} MB")
+                    else:
+                        print(f"  ❌ {county}: No data file found")
+                
+                if not counties_with_data:
+                    print("❌ No specified counties have existing data files!")
+                    return None
+                
+                print(f"\n📊 Found {len(counties_with_data)} counties with data: {', '.join(counties_with_data)}")
+                print("🔄 Proceeding with combination and tile generation...")
+                
+                # Generate PMTiles from existing data for SPECIFIED counties only
+                pmtiles_file = pipeline.generate_pmtiles(counties_with_data)
+            else:
+                print("⏭️ Skipping data collection - using existing files")
+                print("🔍 Checking for existing county data files...")
+                
+                # Check what counties have data
+                available_counties = county_list or pipeline.get_available_counties()
+                counties_with_data = []
             print("⏭️ Skipping data collection - using existing files")
             print("🔍 Checking for existing county data files...")
             

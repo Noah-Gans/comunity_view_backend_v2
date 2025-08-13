@@ -8,7 +8,7 @@
           "parcel_id": ["pidn"],
           "owner_name": ["owner"],
           "physical_address": ["st_address"],
-          "mailing_address": ["mailing_address", "owner_address"],
+          "mailing_address": ["address"],
           "acreage": ["area_calc"],
           "property_value": ["acctval"],
           "land_type_description": ["accttype"],
