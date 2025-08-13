@@ -186,6 +186,10 @@ class DataStandardizer:
         for i, feature in enumerate(tqdm(county_data["features"], desc="Standardizing features"), start=1):
             props = feature.get("properties", {})
             unique_id = f"{county_name.lower()}_{str(i).zfill(6)}"
+            
+            # Calculate bbox for this specific feature
+            feature_bbox = self._calculate_feature_bbox(feature.get("geometry"))
+            
             # Construct links for this parcel
             def build_link(link_info):
                 if not link_info:
@@ -223,6 +227,7 @@ class DataStandardizer:
                 "property_details_link": property_details_link or None,
                 "tax_details_link": tax_details_link or None,
                 "clerk_records_link": clerk_records_link or None,
+                "bbox": feature_bbox,  # Add individual feature bbox
                 # Add more standard fields as needed
             }
             
@@ -265,6 +270,73 @@ class DataStandardizer:
             if key in props and props[key]:
                 return props[key]
         return None
+    
+    def _calculate_feature_bbox(self, geometry):
+        """
+        Calculate bounding box for a single feature geometry.
+        Returns [min_lon, min_lat, max_lon, max_lat] or None if invalid.
+        """
+        if not geometry or geometry.get('type') not in ['Polygon', 'MultiPolygon']:
+            return None
+        
+        coordinates = geometry.get('coordinates', [])
+        if not coordinates:
+            return None
+        
+        # Flatten coordinates to get all points
+        def flatten_coords(coords):
+            points = []
+            if not coords or not isinstance(coords, (list, tuple)) or len(coords) == 0:
+                return points
+                
+            # Handle empty first element
+            if len(coords[0]) == 0:
+                return points
+                
+            if isinstance(coords[0], (list, tuple)):
+                if isinstance(coords[0][0], (list, tuple)):
+                    # MultiPolygon or Polygon with holes
+                    for part in coords:
+                        if not part or len(part) == 0:  # Skip empty parts
+                            continue
+                        if isinstance(part[0][0], (list, tuple)):
+                            # MultiPolygon
+                            for ring in part:
+                                if ring:  # Only process non-empty rings
+                                    points.extend(ring)
+                        else:
+                            # Polygon ring
+                            points.extend(part)
+                else:
+                    # Simple coordinate array
+                    points = coords
+            return points
+        
+        all_points = flatten_coords(coordinates)
+        if not all_points:
+            return None
+        
+        # Filter and extract coordinates with better error handling
+        lons = []
+        lats = []
+        for point in all_points:
+            if isinstance(point, (list, tuple)) and len(point) >= 2:
+                try:
+                    lon = float(point[0])
+                    lat = float(point[1])
+                    lons.append(lon)
+                    lats.append(lat)
+                except (ValueError, TypeError, IndexError) as e:
+                    # Skip invalid coordinate points
+                    continue
+        
+        if not lons or not lats:
+            return None
+        
+        # Calculate bbox: [min_lon, min_lat, max_lon, max_lat]
+        bbox = [min(lons), min(lats), max(lons), max(lats)]
+        
+        return bbox
     
     def save_standardized_data(self, standardized_data, county_name):
         """Save standardized data to file"""
