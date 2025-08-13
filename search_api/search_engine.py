@@ -2,121 +2,33 @@ import json
 import re
 import logging
 from typing import List, Dict, Any, Optional
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-def normalize_text(text: str) -> str:
-    """
-    Normalize text for consistent searching
-    """
-    if not text:
-        return ""
-    return text.lower().strip()
-
-def search_raw_ownership_data(query: str, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Fully optimized search algorithm - FIXED VERSION
-    """
-    if not query or not data:
-        return []
-    
-    lower_case_query = normalize_text(query)
-    query_tokens = lower_case_query.split()
-    
-    # Pre-compile all regex patterns once
-    phrase_regex = re.compile(f"\\b{re.escape(lower_case_query)}\\b", re.IGNORECASE)
-    token_regexes = [re.compile(f"\\b{re.escape(token)}\\b", re.IGNORECASE) for token in query_tokens]
-    
-    results = []
-    processed_count = 0
-    
-    for entry in data:
-        processed_count += 1
-        
-        # Quick rejection filter
-        owner = normalize_text(entry.get("owner", ""))
-        pidn = normalize_text(entry.get("pidn", ""))
-        
-        owner_has_token = any(token in owner for token in query_tokens)
-        pidn_has_token = any(token in pidn for token in query_tokens)
-        
-        if not owner_has_token and not pidn_has_token:
-            mailing = normalize_text(entry.get("mailing_address", ""))
-            if not any(token in mailing for token in query_tokens):
-                continue
-        
-        # Full field search
-        fields_to_search = [
-            owner,
-            pidn,
-            normalize_text(entry.get("tax_info", "")),
-            normalize_text(entry.get("physical_address", "")),
-            normalize_text(entry.get("mailing_address", "")),
-        ]
-        
-        score = 0
-        
-        # Scoring logic
-        if any(phrase_regex.search(field) for field in fields_to_search):
-            score = 600
-        elif all(
-            any(token_regex.search(field) for field in fields_to_search)
-            for token_regex in token_regexes
-        ):
-            score = 350
-        elif any(
-            any(token_regex.search(field) for field in fields_to_search)
-            for token_regex in token_regexes
-        ):
-            score = 200
-        elif any(
-            any(token in field for field in fields_to_search)
-            for token in query_tokens
-        ):
-            score = 110
-        
-        # Boost scores
-        if fields_to_search[0]:
-            score += 100
-        if fields_to_search[3]:
-            score += 50
-        
-        # FIXED: Store the original entry, not just score info
-        if score >= 300:
-            results.append({
-                "entry": entry,  # Store the original entry data
-                "score": score
-            })
-            
-            if len(results) >= 200 and score >= 500:
-                logger.info(f"🚀 Early exit after processing {processed_count} entries")
-                break
-    
-    logger.info(f"🔍 Processed {processed_count} out of {len(data)} total entries")
-    
-    # FIXED: Sort and return the actual entry data
-    results.sort(key=lambda x: x["score"], reverse=True)
-    return [result["entry"] for result in results[:200]]  # Return the actual entries
-
 class SearchEngine:
     """
-    Search engine for ownership data
+    Optimized search engine with pre-computed indexes and faster search algorithms
     """
     
     def __init__(self, search_index_path: str = None):
         if search_index_path is None:
-            # Use absolute path to avoid working directory issues
             from pathlib import Path
             search_api_dir = Path(__file__).parent
             search_index_path = search_api_dir / "search_index.json"
-        self.search_index_path = str(search_index_path)  # Convert Path to string
+        
+        self.search_index_path = str(search_index_path)
         self.search_data = None
+        self.owner_index = defaultdict(list)  # owner -> list of entry indices
+        self.parcel_index = defaultdict(list)  # parcel_id -> list of entry indices
+        self.address_index = defaultdict(list)  # address -> list of entry indices
+        self.word_index = defaultdict(list)     # word -> list of entry indices
+        
         self._load_search_data()
+        self._build_indexes()
     
     def _load_search_data(self):
-        """
-        Load the search index data
-        """
+        """Load the search index data"""
         try:
             with open(self.search_index_path, 'r') as f:
                 self.search_data = json.load(f)
@@ -128,16 +40,137 @@ class SearchEngine:
             logger.error(f"❌ Error loading search index: {e}")
             self.search_data = []
     
-    def reload_search_data(self):
-        """
-        Reload the search index data (useful after updates)
-        """
-        self._load_search_data()
+    def _build_indexes(self):
+        """Build inverted indexes for faster searching"""
+        if not self.search_data:
+            return
+        
+        logger.info("🔨 Building search indexes...")
+        
+        for idx, entry in enumerate(self.search_data):
+            # Index by owner name
+            owner = entry.get("owner", "").lower().strip()
+            if owner:
+                self.owner_index[owner].append(idx)
+                # Also index by words in owner name
+                for word in owner.split():
+                    if len(word) > 2:  # Only index words longer than 2 chars
+                        self.word_index[word].append(idx)
+            
+            # Index by parcel ID
+            parcel_id = entry.get("pidn", "").lower().strip()
+            if parcel_id:
+                self.parcel_index[parcel_id].append(idx)
+                # Also index by partial parcel IDs (common search pattern)
+                for i in range(3, len(parcel_id) + 1):
+                    partial = parcel_id[:i]
+                    self.parcel_index[partial].append(idx)
+            
+            # Index by address
+            address = entry.get("mailing_address", "")
+            if address:
+                address_lower = address.lower().strip()
+                self.address_index[address_lower].append(idx)
+                # Index by words in address
+                for word in address_lower.split():
+                    if len(word) > 2:
+                        self.word_index[word].append(idx)
+        
+        logger.info(f"✅ Built indexes: {len(self.owner_index)} owners, {len(self.parcel_index)} parcels, {len(self.word_index)} words")
+    
+    def _fast_search(self, query: str) -> List[int]:
+        """Fast search using pre-built indexes"""
+        query_lower = query.lower().strip()
+        query_words = query_lower.split()
+        
+        # Get candidate indices from indexes
+        candidates = set()
+        
+        # Check exact matches first (fastest)
+        if query_lower in self.owner_index:
+            candidates.update(self.owner_index[query_lower])
+        if query_lower in self.parcel_index:
+            candidates.update(self.parcel_index[query_lower])
+        if query_lower in self.address_index:
+            candidates.update(self.address_index[query_lower])
+        
+        # Check word matches
+        for word in query_words:
+            if len(word) > 2 and word in self.word_index:
+                candidates.update(self.word_index[word])
+        
+        # If we have enough exact matches, return early
+        if len(candidates) >= 200:
+            return list(candidates)[:200]
+        
+        # Add partial matches for parcel IDs (common search pattern)
+        if len(query_lower) >= 3:
+            for partial in range(3, len(query_lower) + 1):
+                partial_query = query_lower[:partial]
+                if partial_query in self.parcel_index:
+                    candidates.update(self.parcel_index[partial_query])
+        
+        return list(candidates)
+    
+    def _score_and_filter(self, query: str, candidate_indices: List[int]) -> List[Dict[str, Any]]:
+        """Score and filter candidates to get final results"""
+        if not candidate_indices:
+            return []
+        
+        query_lower = query.lower().strip()
+        query_words = query_lower.split()
+        
+        scored_results = []
+        
+        for idx in candidate_indices:
+            entry = self.search_data[idx]
+            score = 0
+            
+            # Owner name scoring (highest priority)
+            owner = entry.get("owner", "").lower()
+            if owner:
+                if query_lower in owner:
+                    score += 1000  # Exact substring match
+                elif all(word in owner for word in query_words):
+                    score += 800   # All words present
+                elif any(word in owner for word in query_words):
+                    score += 400   # Some words present
+            
+            # Parcel ID scoring
+            parcel_id = entry.get("pidn", "").lower()
+            if parcel_id:
+                if query_lower in parcel_id:
+                    score += 600   # Exact substring match
+                elif parcel_id.startswith(query_lower):
+                    score += 500   # Starts with query
+            
+            # Address scoring
+            address = entry.get("mailing_address", "")
+            if address:
+                address_lower = address.lower()
+                if query_lower in address_lower:
+                    score += 300   # Exact substring match
+                elif any(word in address_lower for word in query_words):
+                    score += 150   # Some words present
+            
+            # Boost for complete matches
+            if score > 0:
+                if entry.get("physical_address"):
+                    score += 50
+                if entry.get("clerk_rec"):
+                    score += 25
+                
+                scored_results.append({
+                    "entry": entry,
+                    "score": score
+                })
+        
+        # Sort by score and return top results
+        scored_results.sort(key=lambda x: x["score"], reverse=True)
+        return [result["entry"] for result in scored_results[:200]]
     
     def search(self, query: str, county_filter: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Search for ownership records with debug logging and optional county filtering
-        """
+        """Optimized search with pre-built indexes"""
         if not self.search_data:
             logger.warning("⚠️  No search data loaded")
             return []
@@ -147,32 +180,61 @@ class SearchEngine:
             return []
         
         # Apply county filter if provided
-        search_data = self.search_data
         if county_filter:
-            original_count = len(search_data)
-            search_data = [entry for entry in search_data if entry.get("county") in county_filter]
-            logger.info(f"🏛️  Filtered to {len(search_data)} entries from {original_count} (counties: {county_filter})")
+            # Filter the search data by county first
+            filtered_data = [entry for entry in self.search_data if entry.get("county") in county_filter]
+            if not filtered_data:
+                return []
+            # Rebuild indexes for filtered data (simplified approach)
+            return self._search_filtered(query, filtered_data)
         
-        logger.info(f"🔍 Searching for: '{query}' in {len(search_data)} entries")
+        # Fast search using indexes
+        candidate_indices = self._fast_search(query)
         
-        # Debug: show first entry structure
-        if search_data:
-            logger.info(f"🔍 Sample entry keys: {list(search_data[0].keys())}")
-            sample_owner = search_data[0].get("owner", "")
-            logger.info(f"🔍 Sample owner field: '{sample_owner}'")
+        if not candidate_indices:
+            return []
         
-        results = search_raw_ownership_data(query, search_data)
-        logger.info(f"📊 Found {len(results)} results")
+        # Score and filter candidates
+        results = self._score_and_filter(query, candidate_indices)
         
+        logger.info(f"🔍 Query '{query}' found {len(results)} results from {len(candidate_indices)} candidates")
         return results
     
-    def get_search_stats(self) -> Dict[str, Any]:
-        """
-        Get statistics about the search index
+    def _search_filtered(self, query: str, filtered_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Search within filtered data (fallback for county filtering)"""
+        query_lower = query.lower().strip()
+        query_words = query_lower.split()
         
-        Returns:
-            Dictionary with search index statistics
-        """
+        scored_results = []
+        
+        for entry in filtered_data:
+            score = 0
+            
+            # Simple scoring for filtered search
+            owner = entry.get("owner", "").lower()
+            if owner and any(word in owner for word in query_words):
+                score += 500
+            
+            parcel_id = entry.get("pidn", "").lower()
+            if parcel_id and query_lower in parcel_id:
+                score += 400
+            
+            if score > 0:
+                scored_results.append({
+                    "entry": entry,
+                    "score": score
+                })
+        
+        scored_results.sort(key=lambda x: x["score"], reverse=True)
+        return [result["entry"] for result in scored_results[:200]]
+    
+    def reload_search_data(self):
+        """Reload the search index data and rebuild indexes"""
+        self._load_search_data()
+        self._build_indexes()
+    
+    def get_search_stats(self) -> Dict[str, Any]:
+        """Get statistics about the search index"""
         if not self.search_data:
             return {"total_entries": 0, "counties": []}
         
@@ -183,5 +245,10 @@ class SearchEngine:
         
         return {
             "total_entries": len(self.search_data),
-            "counties": counties
-        } 
+            "counties": counties,
+            "index_sizes": {
+                "owner_index": len(self.owner_index),
+                "parcel_index": len(self.parcel_index),
+                "word_index": len(self.word_index)
+            }
+        }
