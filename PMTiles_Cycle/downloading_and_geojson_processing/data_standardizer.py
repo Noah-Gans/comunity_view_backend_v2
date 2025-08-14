@@ -195,14 +195,10 @@ class DataStandardizer:
                 if not link_info:
                     return None
                 if "static_url" in link_info and "field" in link_info:
-                    # Handle static_url + field combination (like tax_details)
+                    # Handle static_url + field combination
                     field_val = props.get(link_info["field"])
                     if field_val:
-                        # For Lincoln County tax_details, add "00" before the RWACCT value
-                        if county_name == "lincoln_county_wy" and link_info.get("field") == "RWACCT":
-                            return f"{link_info['static_url']}00{field_val}"
-                        else:
-                            return f"{link_info['static_url']}{field_val}"
+                        return f"{link_info['static_url']}{field_val}"
                     else:
                         return None
                 elif "static_url" in link_info:
@@ -210,7 +206,11 @@ class DataStandardizer:
                 elif "base_url" in link_info and "field" in link_info:
                     field_val = props.get(link_info["field"])
                     if field_val:
-                        return f"{link_info['base_url']}{field_val}"
+                        # For Lincoln County tax_details with base_url, add "00" before the RWACCT value
+                        if county_name == "lincoln_county_wy" and link_info.get("field") == "RWACCT":
+                            return f"{link_info['base_url']}00{field_val}"
+                        else:
+                            return f"{link_info['base_url']}{field_val}"
                     else:
                         return None
                 return None
