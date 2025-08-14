@@ -33,11 +33,8 @@ class SearchEngine:
             with open(self.search_index_path, 'r') as f:
                 self.search_data = json.load(f)
             logger.info(f"✅ Loaded search index with {len(self.search_data)} entries")
-            
-            # Pre-clean all searchable text fields
-            logger.info("🧹 Pre-cleaning searchable text fields...")
             self.search_data = self._pre_clean_data(self.search_data)
-            logger.info("✅ Data pre-cleaning completed")
+            
             
         except FileNotFoundError:
             logger.error(f"❌ Search index file not found: {self.search_index_path}")
@@ -47,40 +44,60 @@ class SearchEngine:
             self.search_data = []
     
     def _build_indexes(self):
-        """Build inverted indexes for faster searching"""
-        if not self.search_data:
-            return
-        
+        """Build search indexes from the data"""
         logger.info("🔨 Building search indexes...")
         
+        # Clear existing indexes
+        self.owner_index = defaultdict(list)
+        self.parcel_index = defaultdict(list)
+        self.address_index = defaultdict(list)
+        self.word_index = defaultdict(list)
+        
         for idx, entry in enumerate(self.search_data):
-            # Index by owner name
-            owner = entry.get("owner", "")
-            if owner:
-                owner_lower = owner.lower().strip()
-                self.owner_index[owner_lower].append(idx)
-                # Also index by words in owner name (data is pre-cleaned)
-                for word in owner_lower.split():
+            # Use original values for indexing, but clean them for search
+            owner = entry.get('owner', '')
+            pidn = entry.get('pidn', '')
+            mailing = entry.get('mailing_address', '')
+            physical = entry.get('physical_address', '')
+            county = entry.get('county', '')
+            
+            # Clean text for indexing (but don't modify original data)
+            owner_clean = self._clean_text_for_search(owner)
+            pidn_clean = self._clean_text_for_search(pidn)
+            mailing_clean = self._clean_text_for_search(mailing)
+            physical_clean = self._clean_text_for_search(physical)
+            county_clean = self._clean_text_for_search(county)
+            
+            # Index by cleaned owner name
+            if owner_clean:
+                self.owner_index[owner_clean].append(idx)
+                
+                # Also index by words in owner name (using cleaned text)
+                for word in owner_clean.split():
                     if len(word) > 2:  # Only index words longer than 2 chars
                         self.word_index[word].append(idx)
             
-            # Index by parcel ID
-            parcel_id = entry.get("pidn", "")
-            if parcel_id:
-                parcel_id_lower = parcel_id.lower().strip()
-                self.parcel_index[parcel_id_lower].append(idx)
+            # Index by cleaned PIDN
+            if pidn_clean:
+                self.parcel_index[pidn_clean].append(idx)
+                
                 # Also index by partial parcel IDs (common search pattern)
-                for i in range(3, len(parcel_id_lower) + 1):
-                    partial = parcel_id_lower[:i]
+                for i in range(3, len(pidn_clean) + 1):
+                    partial = pidn_clean[:i]
                     self.parcel_index[partial].append(idx)
             
-            # Index by address
-            address = entry.get("mailing_address", "")
-            if address:
-                address_lower = address.lower().strip()
-                self.address_index[address_lower].append(idx)
-                # Index by words in address (data is pre-cleaned)
-                for word in address_lower.split():
+            # Index by cleaned addresses
+            if mailing_clean:
+                self.address_index[mailing_clean].append(idx)
+                # Index by words in address (using cleaned text)
+                for word in mailing_clean.split():
+                    if len(word) > 2:
+                        self.word_index[word].append(idx)
+            
+            if physical_clean:
+                self.address_index[physical_clean].append(idx)
+                # Index by words in address (using cleaned text)
+                for word in physical_clean.split():
                     if len(word) > 2:
                         self.word_index[word].append(idx)
         
