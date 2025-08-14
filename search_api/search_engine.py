@@ -28,11 +28,17 @@ class SearchEngine:
         self._build_indexes()
     
     def _load_search_data(self):
-        """Load the search index data"""
+        """Load the search index data and pre-clean it"""
         try:
             with open(self.search_index_path, 'r') as f:
                 self.search_data = json.load(f)
             logger.info(f"✅ Loaded search index with {len(self.search_data)} entries")
+            
+            # Pre-clean all searchable text fields
+            logger.info("🧹 Pre-cleaning searchable text fields...")
+            self.search_data = self._pre_clean_data(self.search_data)
+            logger.info("✅ Data pre-cleaning completed")
+            
         except FileNotFoundError:
             logger.error(f"❌ Search index file not found: {self.search_index_path}")
             self.search_data = []
@@ -49,21 +55,23 @@ class SearchEngine:
         
         for idx, entry in enumerate(self.search_data):
             # Index by owner name
-            owner = entry.get("owner", "").lower().strip()
+            owner = entry.get("owner", "")
             if owner:
-                self.owner_index[owner].append(idx)
-                # Also index by words in owner name
-                for word in owner.split():
+                owner_lower = owner.lower().strip()
+                self.owner_index[owner_lower].append(idx)
+                # Also index by words in owner name (data is pre-cleaned)
+                for word in owner_lower.split():
                     if len(word) > 2:  # Only index words longer than 2 chars
                         self.word_index[word].append(idx)
             
             # Index by parcel ID
-            parcel_id = entry.get("pidn", "").lower().strip()
+            parcel_id = entry.get("pidn", "")
             if parcel_id:
-                self.parcel_index[parcel_id].append(idx)
+                parcel_id_lower = parcel_id.lower().strip()
+                self.parcel_index[parcel_id_lower].append(idx)
                 # Also index by partial parcel IDs (common search pattern)
-                for i in range(3, len(parcel_id) + 1):
-                    partial = parcel_id[:i]
+                for i in range(3, len(parcel_id_lower) + 1):
+                    partial = parcel_id_lower[:i]
                     self.parcel_index[partial].append(idx)
             
             # Index by address
@@ -71,7 +79,7 @@ class SearchEngine:
             if address:
                 address_lower = address.lower().strip()
                 self.address_index[address_lower].append(idx)
-                # Index by words in address
+                # Index by words in address (data is pre-cleaned)
                 for word in address_lower.split():
                     if len(word) > 2:
                         self.word_index[word].append(idx)
@@ -112,7 +120,7 @@ class SearchEngine:
         
         return list(candidates)
     
-    def _score_and_filter(self, query: str, candidate_indices: List[int]) -> List[Dict[str, Any]]:
+    def _score_and_filter(self, query: str, candidate_indices: List[int], field_filter: Optional[List[str]] = None, spatial_params: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
         """Score and filter candidates to get final results"""
         if not candidate_indices:
             return []
@@ -124,34 +132,17 @@ class SearchEngine:
         
         for idx in candidate_indices:
             entry = self.search_data[idx]
-            score = 0
             
-            # Owner name scoring (highest priority)
-            owner = entry.get("owner", "").lower()
-            if owner:
-                if query_lower in owner:
-                    score += 1000  # Exact substring match
-                elif all(word in owner for word in query_words):
-                    score += 800   # All words present
-                elif any(word in owner for word in query_words):
-                    score += 400   # Some words present
+            # Use field-specific or all-field scoring
+            if field_filter:
+                score = self._score_by_fields(entry, query_lower, query_words, field_filter)
+            else:
+                score = self._score_all_fields(entry, query_lower, query_words)
             
-            # Parcel ID scoring
-            parcel_id = entry.get("pidn", "").lower()
-            if parcel_id:
-                if query_lower in parcel_id:
-                    score += 600   # Exact substring match
-                elif parcel_id.startswith(query_lower):
-                    score += 500   # Starts with query
-            
-            # Address scoring
-            address = entry.get("mailing_address", "")
-            if address:
-                address_lower = address.lower()
-                if query_lower in address_lower:
-                    score += 300   # Exact substring match
-                elif any(word in address_lower for word in query_words):
-                    score += 150   # Some words present
+            # Apply spatial boost if coordinates provided
+            if spatial_params and score > 0:
+                spatial_boost = self._calculate_spatial_boost(entry, spatial_params)
+                score += spatial_boost
             
             # Boost for complete matches
             if score > 0:
@@ -169,8 +160,8 @@ class SearchEngine:
         scored_results.sort(key=lambda x: x["score"], reverse=True)
         return [result["entry"] for result in scored_results[:200]]
     
-    def search(self, query: str, county_filter: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """Optimized search with pre-built indexes"""
+    def search(self, query: str, county_filter: Optional[List[str]] = None, field_filter: Optional[List[str]] = None, spatial_params: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
+        """Optimized search with pre-built indexes and advanced filtering + LINEAR FALLBACK"""
         if not self.search_data:
             logger.warning("⚠️  No search data loaded")
             return []
@@ -179,29 +170,37 @@ class SearchEngine:
             logger.warning("⚠️  Empty query")
             return []
         
-        # Apply county filter if provided
+        # Apply county filter if provided (now expects county codes like teton_county_wy)
         if county_filter:
-            # Filter the search data by county first
-            filtered_data = [entry for entry in self.search_data if entry.get("county") in county_filter]
+            filtered_data = []
+            for entry in self.search_data:
+                # Extract county code from global_parcel_uid (e.g., "teton_county_wy_000001" -> "teton_county_wy")
+                uid = entry.get("global_parcel_uid", "")
+                if uid and "_" in uid:
+                    county_code = uid.split("_")[0] + "_" + uid.split("_")[1] + "_" + uid.split("_")[2]
+                    if county_code in county_filter:
+                        filtered_data.append(entry)
+            
             if not filtered_data:
                 return []
-            # Rebuild indexes for filtered data (simplified approach)
-            return self._search_filtered(query, filtered_data)
+            # Search within filtered data
+            return self._search_filtered(query, filtered_data, field_filter, spatial_params)
         
         # Fast search using indexes
         candidate_indices = self._fast_search(query)
         
+        # If fast search returns no candidates, return empty
         if not candidate_indices:
             return []
         
         # Score and filter candidates
-        results = self._score_and_filter(query, candidate_indices)
+        results = self._score_and_filter(query, candidate_indices, field_filter, spatial_params)
         
         logger.info(f"🔍 Query '{query}' found {len(results)} results from {len(candidate_indices)} candidates")
         return results
     
-    def _search_filtered(self, query: str, filtered_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Search within filtered data (fallback for county filtering)"""
+    def _search_filtered(self, query: str, filtered_data: List[Dict[str, Any]], field_filter: Optional[List[str]] = None, spatial_params: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
+        """Search within filtered data with advanced filtering"""
         query_lower = query.lower().strip()
         query_words = query_lower.split()
         
@@ -210,14 +209,17 @@ class SearchEngine:
         for entry in filtered_data:
             score = 0
             
-            # Simple scoring for filtered search
-            owner = entry.get("owner", "").lower()
-            if owner and any(word in owner for word in query_words):
-                score += 500
+            # Field-specific search if specified
+            if field_filter:
+                score = self._score_by_fields(entry, query_lower, query_words, field_filter)
+            else:
+                # Default scoring for all fields
+                score = self._score_all_fields(entry, query_lower, query_words)
             
-            parcel_id = entry.get("pidn", "").lower()
-            if parcel_id and query_lower in parcel_id:
-                score += 400
+            # Apply spatial boost if coordinates provided
+            if spatial_params and score > 0:
+                spatial_boost = self._calculate_spatial_boost(entry, spatial_params)
+                score += spatial_boost
             
             if score > 0:
                 scored_results.append({
@@ -225,8 +227,113 @@ class SearchEngine:
                     "score": score
                 })
         
+        # Sort by score (spatial results will be prioritized)
         scored_results.sort(key=lambda x: x["score"], reverse=True)
         return [result["entry"] for result in scored_results[:200]]
+    
+    def _score_by_fields(self, entry: Dict[str, Any], query_lower: str, query_words: List[str], field_filter: List[str]) -> int:
+        """Score entry based on specific fields only - ANY field can match"""
+        score = 0
+        
+        # Check if ANY of the specified fields match (not all)
+        for field in field_filter:
+            field_lower = field.lower()
+            field_score = 0
+            
+            if field_lower == "owner":
+                owner = entry.get("owner", "")
+                if owner and any(word in owner.lower() for word in query_words):
+                    field_score = 500
+            elif field_lower == "pidn":
+                parcel_id = entry.get("pidn", "")
+                if parcel_id and query_lower in parcel_id.lower():
+                    field_score = 400
+            elif field_lower == "mailing_address":
+                address = entry.get("mailing_address", "")
+                if address and any(word in address.lower() for word in query_words):
+                    field_score = 300
+            elif field_lower == "physical_address":
+                address = entry.get("physical_address", "")
+                if address and any(word in address.lower() for word in query_words):
+                    field_score = 300
+            elif field_lower == "county":
+                county = entry.get("county", "")
+                if county and query_lower in county.lower():
+                    field_score = 200
+            
+            # Use the highest score from any matching field
+            score = max(score, field_score)
+        
+        return score
+    
+    def _score_all_fields(self, entry: Dict[str, Any], query_lower: str, query_words: List[str]) -> int:
+        """Score entry across all searchable fields - RESTORED ORIGINAL LOGIC"""
+        score = 0
+        
+        # Owner name scoring (highest priority)
+        owner = entry.get("owner", "")
+        if owner:
+            if query_lower in owner.lower():
+                score += 1000  # Exact substring match
+            elif all(word in owner.lower() for word in query_words):
+                score += 800   # All words present
+            elif any(word in owner.lower() for word in query_words):
+                score += 400   # Some words present
+        
+        # Parcel ID scoring
+        parcel_id = entry.get("pidn", "")
+        if parcel_id:
+            if query_lower in parcel_id.lower():
+                score += 600   # Exact substring match
+            elif parcel_id.lower().startswith(query_lower):
+                score += 500   # Starts with query
+        
+        # Address scoring
+        address = entry.get("mailing_address", "")
+        if address:
+            address_lower = address.lower()
+            if query_lower in address_lower:
+                score += 300   # Exact substring match
+            elif any(word in address_lower for word in query_words):
+                score += 150   # Some words present
+        
+        physical_address = entry.get("physical_address", "")
+        if physical_address:
+            physical_lower = physical_address.lower()
+            if query_lower in physical_lower:
+                score += 300   # Exact substring match
+            elif any(word in physical_lower for word in query_words):
+                score += 150   # Some words present
+        
+        return score
+    
+    def _calculate_spatial_boost(self, entry: Dict[str, Any], spatial_params: Dict[str, float]) -> int:
+        """Calculate spatial boost based on proximity to lat/lon"""
+        bbox = entry.get("bbox")
+        if not bbox or len(bbox) != 4:
+            return 0
+        
+        # Calculate center of bbox
+        center_lon = (bbox[0] + bbox[2]) / 2
+        center_lat = (bbox[1] + bbox[3]) / 2
+        
+        # Calculate distance (simple Euclidean for speed)
+        target_lon = spatial_params["lon"]
+        target_lat = spatial_params["lat"]
+        
+        # Rough distance calculation (degrees)
+        distance = ((center_lon - target_lon) ** 2 + (center_lat - target_lat) ** 2) ** 0.5
+        
+        # Convert to spatial boost (closer = higher boost)
+        # Max boost of 1000 for very close, decreasing with distance
+        if distance < 0.01:  # Very close (< ~1km)
+            return 1000
+        elif distance < 0.1:  # Close (< ~10km)
+            return 500
+        elif distance < 0.5:  # Moderate (< ~50km)
+            return 100
+        else:
+            return 0
     
     def reload_search_data(self):
         """Reload the search index data and rebuild indexes"""
@@ -252,3 +359,48 @@ class SearchEngine:
                 "word_index": len(self.word_index)
             }
         }
+    
+    def _pre_clean_data(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Pre-clean all searchable text fields to remove punctuation and normalize text"""
+        import re
+        
+        logger.info("🧹 Pre-cleaning searchable text fields...")
+        
+        # Fields to clean
+        text_fields = ['owner', 'pidn', 'mailing_address', 'physical_address', 'county']
+        
+        for entry in data:
+            for field in text_fields:
+                if field in entry and entry[field]:
+                    # Store original value
+                    original = entry[field]
+                    
+                    # Create cleaned version for searching
+                    cleaned = self._clean_text_for_search(original)
+                    
+                    # Store both versions
+                    entry[f"{field}_original"] = original  # Keep original for display
+                    entry[field] = cleaned  # Use cleaned for indexing/searching
+        
+        logger.info("✅ Data pre-cleaning completed")
+        return data
+    
+    def _clean_text_for_search(self, text: str) -> str:
+        """Clean text for consistent searching by removing punctuation and normalizing"""
+        if not text:
+            return ""
+        
+        # Convert to lowercase
+        text = text.lower()
+        
+        # Remove common punctuation that causes search issues
+        # Keep spaces, letters, numbers, but remove punctuation
+        text = re.sub(r'[^\w\s]', ' ', text)
+        
+        # Normalize whitespace (multiple spaces become single space)
+        text = re.sub(r'\s+', ' ', text)
+        
+        # Strip leading/trailing whitespace
+        text = text.strip()
+        
+        return text
