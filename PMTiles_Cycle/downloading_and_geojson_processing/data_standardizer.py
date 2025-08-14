@@ -191,7 +191,7 @@ class DataStandardizer:
             feature_bbox = self._calculate_feature_bbox(feature.get("geometry"))
             
             # Construct links for this parcel
-            def build_link(link_info):
+            def build_link(link_info, link_type):
                 if not link_info:
                     return None
                 if "static_url" in link_info and "field" in link_info:
@@ -206,8 +206,10 @@ class DataStandardizer:
                 elif "base_url" in link_info and "field" in link_info:
                     field_val = props.get(link_info["field"])
                     if field_val:
-                        # For Lincoln County tax_details with base_url, add "00" before the RWACCT value
-                        if county_name == "lincoln_county_wy" and link_info.get("field") == "RWACCT":
+                        # For Lincoln County tax_details link specifically, add "00" before the RWACCT value
+                        if (county_name == "lincoln_county_wy" and 
+                            link_info.get("field") == "RWACCT" and
+                            link_type == "tax_details"):
                             return f"{link_info['base_url']}00{field_val}"
                         else:
                             return f"{link_info['base_url']}{field_val}"
@@ -215,9 +217,9 @@ class DataStandardizer:
                         return None
                 return None
 
-            property_details_link = build_link(links_cfg.get("property_details"))
-            tax_details_link = build_link(links_cfg.get("tax_details"))
-            clerk_records_link = build_link(links_cfg.get("clerk_records"))
+            property_details_link = build_link(links_cfg.get("property_details"), "property_details")
+            tax_details_link = build_link(links_cfg.get("tax_details"), "tax_details")
+            clerk_records_link = build_link(links_cfg.get("clerk_records"), "clerk_records")
 
             # Standardize property fields
             standardized_props = {
