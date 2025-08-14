@@ -194,7 +194,18 @@ class DataStandardizer:
             def build_link(link_info):
                 if not link_info:
                     return None
-                if "static_url" in link_info:
+                if "static_url" in link_info and "field" in link_info:
+                    # Handle static_url + field combination (like tax_details)
+                    field_val = props.get(link_info["field"])
+                    if field_val:
+                        # For tax_details, add "00" before the RWACCT value
+                        if link_info.get("field") == "RWACCT":
+                            return f"{link_info['static_url']}00{field_val}"
+                        else:
+                            return f"{link_info['static_url']}{field_val}"
+                    else:
+                        return None
+                elif "static_url" in link_info:
                     return link_info["static_url"]
                 elif "base_url" in link_info and "field" in link_info:
                     field_val = props.get(link_info["field"])

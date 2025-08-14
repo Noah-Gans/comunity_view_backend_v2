@@ -111,7 +111,7 @@
           "field": "RWACCT"
         },
         "tax_details": {
-          "static_url": "https://itax.tylertech.com/LincolnWY/detail.aspx?taxid=",
+          "base_url": "https://itax.tylertech.com/LincolnWY/detail.aspx?taxid=",
           "field": "RWACCT"
         },
         "clerk_records": {
@@ -141,11 +141,11 @@
       },
       "standardized_links": {
         "property_details": {
-          "base_url": "https://greenwoodmap.com/sublette/mapserver/tabDetail.php?v=2&accountno=",
+          "base_url": "https://maps.terragis.net/sublette/mapserver/tabDetail.php?v=2&accountno=",
           "field": "accountno"
         },
         "tax_details": {
-          "base_url": "https://maps.greenwoodmap.com/sublette/treas/query/search.php?Tax_ID=",
+          "base_url": "https://maps.terragis.net/sublette/treas/query/search.php?Tax_ID=",
           "field": "tax_id"
         },
         "clerk_records": {
@@ -176,7 +176,7 @@
       },
       "standardized_links": {
         "property_details": {
-          "base_url": "https://maps.greenwoodmap.com/fremontwy/tabDetail.php?v=2&accountno=",
+          "base_url": "https://maps.terragis.net/fremontwy/tabDetail.php?v=2&accountno=",
           "field": "accountno"
         },
         "tax_details": {

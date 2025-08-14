@@ -54,50 +54,43 @@ class SearchEngine:
         self.word_index = defaultdict(list)
         
         for idx, entry in enumerate(self.search_data):
-            # Use original values for indexing, but clean them for search
-            owner = entry.get('owner', '')
-            pidn = entry.get('pidn', '')
-            mailing = entry.get('mailing_address', '')
-            physical = entry.get('physical_address', '')
-            county = entry.get('county', '')
-            
-            # Clean text for indexing (but don't modify original data)
-            owner_clean = self._clean_text_for_search(owner)
-            pidn_clean = self._clean_text_for_search(pidn)
-            mailing_clean = self._clean_text_for_search(mailing)
-            physical_clean = self._clean_text_for_search(physical)
-            county_clean = self._clean_text_for_search(county)
+            # Use cleaned versions for indexing if available, otherwise clean the original
+            owner = entry.get('owner_cleaned', self._clean_text_for_search(entry.get('owner', '')))
+            pidn = entry.get('pidn_cleaned', self._clean_text_for_search(entry.get('pidn', '')))
+            mailing = entry.get('mailing_address_cleaned', self._clean_text_for_search(entry.get('mailing_address', '')))
+            physical = entry.get('physical_address_cleaned', self._clean_text_for_search(entry.get('physical_address', '')))
+            county = entry.get('county_cleaned', self._clean_text_for_search(entry.get('county', '')))
             
             # Index by cleaned owner name
-            if owner_clean:
-                self.owner_index[owner_clean].append(idx)
+            if owner:
+                self.owner_index[owner].append(idx)
                 
                 # Also index by words in owner name (using cleaned text)
-                for word in owner_clean.split():
+                for word in owner.split():
                     if len(word) > 2:  # Only index words longer than 2 chars
                         self.word_index[word].append(idx)
             
             # Index by cleaned PIDN
-            if pidn_clean:
-                self.parcel_index[pidn_clean].append(idx)
+            if pidn:
+                self.parcel_index[pidn].append(idx)
                 
                 # Also index by partial parcel IDs (common search pattern)
-                for i in range(3, len(pidn_clean) + 1):
-                    partial = pidn_clean[:i]
+                for i in range(3, len(pidn) + 1):
+                    partial = pidn[:i]
                     self.parcel_index[partial].append(idx)
             
             # Index by cleaned addresses
-            if mailing_clean:
-                self.address_index[mailing_clean].append(idx)
+            if mailing:
+                self.address_index[mailing].append(idx)
                 # Index by words in address (using cleaned text)
-                for word in mailing_clean.split():
+                for word in mailing.split():
                     if len(word) > 2:
                         self.word_index[word].append(idx)
             
-            if physical_clean:
-                self.address_index[physical_clean].append(idx)
+            if physical:
+                self.address_index[physical].append(idx)
                 # Index by words in address (using cleaned text)
-                for word in physical_clean.split():
+                for word in physical.split():
                     if len(word) > 2:
                         self.word_index[word].append(idx)
         
@@ -258,23 +251,24 @@ class SearchEngine:
             field_score = 0
             
             if field_lower == "owner":
-                owner = entry.get("owner", "")
+                # Use cleaned version for searching, but keep original for display
+                owner = entry.get("owner_cleaned", entry.get("owner", ""))
                 if owner and any(word in owner.lower() for word in query_words):
                     field_score = 500
             elif field_lower == "pidn":
-                parcel_id = entry.get("pidn", "")
+                parcel_id = entry.get("pidn_cleaned", entry.get("pidn", ""))
                 if parcel_id and query_lower in parcel_id.lower():
                     field_score = 400
             elif field_lower == "mailing_address":
-                address = entry.get("mailing_address", "")
+                address = entry.get("mailing_address_cleaned", entry.get("mailing_address", ""))
                 if address and any(word in address.lower() for word in query_words):
                     field_score = 300
             elif field_lower == "physical_address":
-                address = entry.get("physical_address", "")
+                address = entry.get("physical_address_cleaned", entry.get("physical_address", ""))
                 if address and any(word in address.lower() for word in query_words):
                     field_score = 300
             elif field_lower == "county":
-                county = entry.get("county", "")
+                county = entry.get("county_cleaned", entry.get("county", ""))
                 if county and query_lower in county.lower():
                     field_score = 200
             
@@ -287,8 +281,8 @@ class SearchEngine:
         """Score entry across all searchable fields - RESTORED ORIGINAL LOGIC"""
         score = 0
         
-        # Owner name scoring (highest priority)
-        owner = entry.get("owner", "")
+        # Owner name scoring (highest priority) - use cleaned version for searching
+        owner = entry.get("owner_cleaned", entry.get("owner", ""))
         if owner:
             if query_lower in owner.lower():
                 score += 1000  # Exact substring match
@@ -297,16 +291,16 @@ class SearchEngine:
             elif any(word in owner.lower() for word in query_words):
                 score += 400   # Some words present
         
-        # Parcel ID scoring
-        parcel_id = entry.get("pidn", "")
+        # Parcel ID scoring - use cleaned version for searching
+        parcel_id = entry.get("pidn_cleaned", entry.get("pidn", ""))
         if parcel_id:
             if query_lower in parcel_id.lower():
                 score += 600   # Exact substring match
             elif parcel_id.lower().startswith(query_lower):
                 score += 500   # Starts with query
         
-        # Address scoring
-        address = entry.get("mailing_address", "")
+        # Address scoring - use cleaned version for searching
+        address = entry.get("mailing_address_cleaned", entry.get("mailing_address", ""))
         if address:
             address_lower = address.lower()
             if query_lower in address_lower:
@@ -314,7 +308,7 @@ class SearchEngine:
             elif any(word in address_lower for word in query_words):
                 score += 150   # Some words present
         
-        physical_address = entry.get("physical_address", "")
+        physical_address = entry.get("physical_address_cleaned", entry.get("physical_address", ""))
         if physical_address:
             physical_lower = physical_address.lower()
             if query_lower in physical_lower:
@@ -395,9 +389,10 @@ class SearchEngine:
                     # Create cleaned version for searching
                     cleaned = self._clean_text_for_search(original)
                     
-                    # Store both versions
-                    entry[f"{field}_original"] = original  # Keep original for display
-                    entry[field] = cleaned  # Use cleaned for indexing/searching
+                    # Store cleaned version for indexing/searching
+                    entry[f"{field}_cleaned"] = cleaned
+                    # Keep original value in main field for display
+                    # entry[field] remains unchanged
         
         logger.info("✅ Data pre-cleaning completed")
         return data
