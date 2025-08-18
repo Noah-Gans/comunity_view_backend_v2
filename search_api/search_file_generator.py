@@ -164,17 +164,17 @@ def create_search_index():
                     
                     # Create enhanced search entry with new fields
                     search_entry = {
-                        "global_parcel_uid": properties.get("global_parcel_uid", ""),
-                        "pidn": properties.get("county_parcel_id_num", ""),
+                        "GFI": properties.get("GFI", ""),
+                        "county_parcel_id": properties.get("county_parcel_id", ""),
                         "owner": properties.get("owner_name", ""),
-                        "mailing_address": properties.get("mailing_address", ""),
-                        "physical_address": properties.get("physical_address", ""),
+                        "mail": properties.get("mail", ""),
+                        "physical": properties.get("physical", ""),
                         "county": clean_county_name(county),
                         "state": state,
                         "bbox": bbox,
-                        "clerk_rec": properties.get("clerk_records_link", ""),
-                        "property_det": properties.get("property_details_link", ""),
-                        "tax_info": properties.get("tax_details_link", "")
+                        "clerk_rec": properties.get("clerk_records_key", ""),
+                        "property_det": properties.get("property_details_key", ""),
+                        "tax_info": properties.get("tax_details_key", "")
                     }
                     
                     search_index.append(search_entry)

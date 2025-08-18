@@ -166,93 +166,65 @@ class DataStandardizer:
         mappings = self.get_mappings(county_name)
         links_cfg = self.get_links_config(county_name)
         standardized_features = []
-        
+
         print(f"Standardizing {county_name} data...")
-        
+
         # Step 1: Detect and transform coordinates if needed
         detected_crs = self.detect_coordinate_system(county_data)
         print(f"  Detected coordinate system: {detected_crs}")
-        
+
         if detected_crs in ['EPSG:3739', 'EPSG:2677', 'EPSG:3738']:
             print(f"  🔄 State Plane coordinates detected - transforming to WGS84...")
             county_data = self.transform_coordinates(county_data, detected_crs, 'EPSG:4326')
         else:
             print(f"  ✅ Coordinates already in WGS84 format")
-        
+
         # Step 2: Convert 3D coordinates to 2D
         county_data = self.convert_to_2d_coordinates(county_data)
-        
+
         # Step 3: Standardize properties
         for i, feature in enumerate(tqdm(county_data["features"], desc="Standardizing features"), start=1):
             props = feature.get("properties", {})
             unique_id = f"{county_name.lower()}_{str(i).zfill(6)}"
-            
+
             # Calculate bbox for this specific feature
             feature_bbox = self._calculate_feature_bbox(feature.get("geometry"))
-            
-            # Construct links for this parcel
-            def build_link(link_info, link_type):
+
+            # Extract link keys/IDs only (not full URLs)
+            def extract_link_key(link_info):
                 if not link_info:
                     return None
-                if "static_url" in link_info and "field" in link_info:
-                    # Handle static_url + field combination
-                    field_val = props.get(link_info["field"])
-                    if field_val:
-                        return f"{link_info['static_url']}{field_val}"
-                    else:
-                        return None
-                elif "static_url" in link_info:
-                    return link_info["static_url"]
-                elif "base_url" in link_info and "field" in link_info:
-                    field_val = props.get(link_info["field"])
-                    if field_val:
-                        # For Lincoln County tax_details link specifically, add "00" before the RWACCT value
-                        if (county_name == "lincoln_county_wy" and 
-                            link_info.get("field") == "RWACCT" and
-                            link_type == "tax_details"):
-                            return f"{link_info['base_url']}00{field_val}"
-                        else:
-                            return f"{link_info['base_url']}{field_val}"
-                    else:
-                        return None
+                field = link_info.get("field")
+                if field:
+                    return props.get(field)
                 return None
 
-            property_details_link = build_link(links_cfg.get("property_details"), "property_details")
-            tax_details_link = build_link(links_cfg.get("tax_details"), "tax_details")
-            clerk_records_link = build_link(links_cfg.get("clerk_records"), "clerk_records")
+            property_details_key = extract_link_key(links_cfg.get("property_details"))
+            tax_details_key = extract_link_key(links_cfg.get("tax_details"))
+            clerk_records_key = extract_link_key(links_cfg.get("clerk_records"))
 
-            # Standardize property fields
+            # Standardize property fields (trimmed and renamed)
             standardized_props = {
-                "global_parcel_uid": unique_id,
+                "GFI": unique_id,
                 "county": county_name,
-                "county_parcel_id_num": self._extract_from_mapping(props, mappings, "parcel_id"),
+                "county_parcel_id": self._extract_from_mapping(props, mappings, "parcel_id"),
                 "owner_name": self._extract_from_mapping(props, mappings, "owner_name"),
-                "physical_address": self._extract_from_mapping(props, mappings, "physical_address"),
-                "mailing_address": self._extract_mailing_address(props, mappings),
-                "acreage": self._extract_from_mapping(props, mappings, "acreage"),
+                "physical": self._extract_from_mapping(props, mappings, "physical_address"),
+                "mail": self._extract_mailing_address(props, mappings),
+                "acre": self._extract_from_mapping(props, mappings, "acreage"),
                 "property_value": self._extract_from_mapping(props, mappings, "property_value"),
-                "land_type/description": self._extract_from_mapping(props, mappings, "land_type_description"),
-                "deed_reference": self._extract_from_mapping(props, mappings, "deed_reference"),
-                "tax_year": self._extract_from_mapping(props, mappings, "tax_year"),
-                "owner_city": self._extract_from_mapping(props, mappings, "owner_city"),
-                "owner_state": self._extract_from_mapping(props, mappings, "owner_state"),
-                "owner_zip": self._extract_from_mapping(props, mappings, "owner_zip"),
-                "property_details_link": property_details_link or None,
-                "tax_details_link": tax_details_link or None,
-                "clerk_records_link": clerk_records_link or None,
-                "bbox": feature_bbox,  # Add individual feature bbox
-                # Add more standard fields as needed
+                "property_details_key": property_details_key or None,
+                "tax_details_key": tax_details_key or None,
+                "clerk_records_key": clerk_records_key or None,
+                "bbox": feature_bbox,
             }
-            
-            # Keep original properties as raw_data
-            standardized_props["raw_data"] = props
-            
+
             standardized_features.append({
                 "type": "Feature",
                 "properties": standardized_props,
                 "geometry": feature.get("geometry")
             })
-            
+
         return {
             "type": "FeatureCollection",
             "features": standardized_features
@@ -268,21 +240,21 @@ class DataStandardizer:
     
     def _extract_mailing_address(self, props, mappings):
         mailing_mapping = mappings.get("mailing_address", [])
-        if len(mailing_mapping) > 1:
-            # Compose from multiple fields if more than one element
-            address = props.get(mailing_mapping[0], "")
-            city = props.get(mailing_mapping[1], "") if len(mailing_mapping) > 1 else ""
-            state = props.get(mailing_mapping[2], "") if len(mailing_mapping) > 2 else ""
-            zip_code = props.get(mailing_mapping[3], "") if len(mailing_mapping) > 3 else ""
-            line = address
-            if city or state or zip_code:
-                line += f", {city}, {state} {zip_code}".strip()
-            return line.strip(", ")
-        elif len(mailing_mapping) == 1:
-            key = mailing_mapping[0]
-            if key in props and props[key]:
-                return props[key]
-        return None
+        # Always treat as a list of fields to combine
+        parts = []
+        for key in mailing_mapping:
+            val = props.get(key, "")
+            if val and isinstance(val, str):
+                val = val.strip()
+                if val:
+                    parts.append(val)
+        # Join all non-empty parts with ', '
+        address = ', '.join(parts)
+        # Clean up double commas, extra spaces, and trailing commas
+        while ', ,' in address:
+            address = address.replace(', ,', ',')
+        address = address.replace(' ,', ',').replace(',  ', ', ').strip(', ').replace(',,', ',')
+        return address if address else None
     
     def _calculate_feature_bbox(self, geometry):
         """

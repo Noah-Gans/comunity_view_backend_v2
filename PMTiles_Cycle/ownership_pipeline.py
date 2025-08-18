@@ -167,12 +167,24 @@ class OwnershipPipeline:
         subprocess.run([
             'tippecanoe',
             '-o', str(tile_output_low),
-            '--maximum-zoom', '12',
+            '--maximum-zoom', '11',
             '--minimum-zoom', '6',  # ← Your original min zoom
-            '--simplify-only-low-zooms',  # Apply simplifications only to lower zooms
-            '--coalesce-smallest-as-needed',  # Coalesce smaller features to reduce detail but retain structure
-            '--simplification=5',  # ← Your original simplification value
-            '--no-tile-size-limit',  # Allow larger tiles
+            '--simplification=2',
+            '--detect-shared-borders',
+            '--maximum-tile-bytes', '300000',
+            '--coalesce', '--coalesce-densest-as-needed',
+            '--drop-densest-as-needed', '--drop-fraction-as-needed',
+            '--extend-zooms-if-still-dropping',  # Allow larger tiles
+            '-y', 'county',
+            '-y', 'county_parcel_id_num',
+            '-y', 'owner_name',
+            '-y', 'physical_address',
+            '-y', 'mailing_address',
+            '-y', 'acreage',
+            '-y', 'property_value',
+            '-y', 'property_details_link',
+            '-y', 'tax_details_link',
+            '-y', 'clerk_records_link',
             '--force',
             str(combined_file)
         ], check=True)
@@ -184,10 +196,20 @@ class OwnershipPipeline:
         subprocess.run([
             'tippecanoe',
             '-o', str(tile_output_mid),
-            '--minimum-zoom', '13',
+            '--minimum-zoom', '12',
             '--maximum-zoom', '16',
             '--coalesce-smallest-as-needed',  # Coalesce for more compact but detailed representation
             '--no-tile-size-limit',  # Allow larger tiles for high zooms
+            '-y', 'county',
+            '-y', 'county_parcel_id_num',
+            '-y', 'owner_name',
+            '-y', 'physical_address',
+            '-y', 'mailing_address',
+            '-y', 'acreage',
+            '-y', 'property_value',
+            '-y', 'property_details_link',
+            '-y', 'tax_details_link',
+            '-y', 'clerk_records_link',
             '--force',
             str(combined_file)
         ], check=True)
@@ -202,6 +224,16 @@ class OwnershipPipeline:
             '--minimum-zoom', '17',
             '--maximum-zoom', '17',
             '--no-tile-size-limit',
+            '-y', 'county',
+            '-y', 'county_parcel_id_num',
+            '-y', 'owner_name',
+            '-y', 'physical_address',
+            '-y', 'mailing_address',
+            '-y', 'acreage',
+            '-y', 'property_value',
+            '-y', 'property_details_link',
+            '-y', 'tax_details_link',
+            '-y', 'clerk_records_link',
             '--force',
             str(combined_file)
         ], check=True)
