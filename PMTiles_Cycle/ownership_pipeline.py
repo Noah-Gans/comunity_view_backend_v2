@@ -175,16 +175,6 @@ class OwnershipPipeline:
             '--coalesce', '--coalesce-densest-as-needed',
             '--drop-densest-as-needed', '--drop-fraction-as-needed',
             '--extend-zooms-if-still-dropping',  # Allow larger tiles
-            '-y', 'county',
-            '-y', 'county_parcel_id_num',
-            '-y', 'owner_name',
-            '-y', 'physical_address',
-            '-y', 'mailing_address',
-            '-y', 'acreage',
-            '-y', 'property_value',
-            '-y', 'property_details_link',
-            '-y', 'tax_details_link',
-            '-y', 'clerk_records_link',
             '--force',
             str(combined_file)
         ], check=True)
@@ -200,16 +190,6 @@ class OwnershipPipeline:
             '--maximum-zoom', '16',
             '--coalesce-smallest-as-needed',  # Coalesce for more compact but detailed representation
             '--no-tile-size-limit',  # Allow larger tiles for high zooms
-            '-y', 'county',
-            '-y', 'county_parcel_id_num',
-            '-y', 'owner_name',
-            '-y', 'physical_address',
-            '-y', 'mailing_address',
-            '-y', 'acreage',
-            '-y', 'property_value',
-            '-y', 'property_details_link',
-            '-y', 'tax_details_link',
-            '-y', 'clerk_records_link',
             '--force',
             str(combined_file)
         ], check=True)
@@ -224,16 +204,6 @@ class OwnershipPipeline:
             '--minimum-zoom', '17',
             '--maximum-zoom', '17',
             '--no-tile-size-limit',
-            '-y', 'county',
-            '-y', 'county_parcel_id_num',
-            '-y', 'owner_name',
-            '-y', 'physical_address',
-            '-y', 'mailing_address',
-            '-y', 'acreage',
-            '-y', 'property_value',
-            '-y', 'property_details_link',
-            '-y', 'tax_details_link',
-            '-y', 'clerk_records_link',
             '--force',
             str(combined_file)
         ], check=True)
