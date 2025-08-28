@@ -42,7 +42,7 @@ search_engine = SearchEngine()
 
 # Pydantic models for API responses
 class SearchResult(BaseModel):
-    global_parcel_uid: str
+    GFI: str
     pidn: str
     owner: str
     mailing_address: str
@@ -93,7 +93,16 @@ async def health_check():
 async def search_properties(
     q: str = Query(..., description="Search query"),
     limit: Optional[int] = Query(200, description="Maximum number of results to return"),
-    counties: Optional[str] = Query(None, description="Comma-separated list of counties to filter by (e.g., 'Fremont County,Teton County')")
+    counties: Optional[str] = Query(None, description="Comma-separated list of county codes"),
+    lat: Optional[float] = Query(None, description="Latitude for spatial search priority"),
+    lon: Optional[float] = Query(None, description="Longitude for spatial search priority"),
+    fields: Optional[str] = Query(None, description="Comma-separated list of fields to search in"),
+    # New advanced search parameters
+    is_advanced: bool = Query(False, description="Use advanced search mode"),
+    search_fields: Optional[str] = Query(None, description="Comma-separated list of fields to search in advanced mode"),
+    filters: Optional[str] = Query(None, description="JSON string of filters for advanced search"),
+    sort_by: Optional[str] = Query(None, description="Field to sort by in advanced search"),
+    sort_order: Optional[str] = Query("desc", description="Sort order: asc or desc")
 ):
     """
     Search for properties by owner name, address, parcel ID, etc.
@@ -108,29 +117,63 @@ async def search_properties(
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
     
     try:
-        # Parse county filter
+        # Parse county filter (now expects county codes like teton_county_wy)
         county_filter = None
         if counties:
             county_filter = [county.strip() for county in counties.split(',') if county.strip()]
         
+        # Parse field filter
+        field_filter = None
+        if fields:
+            field_filter = [field.strip() for field in fields.split(',') if field.strip()]
+        
+        # Parse spatial parameters
+        spatial_params = None
+        if lat is not None and lon is not None:
+            spatial_params = {"lat": lat, "lon": lon}
+        
+        # Parse advanced search parameters
+        advanced_search_fields = None
+        if search_fields:
+            advanced_search_fields = [field.strip() for field in search_fields.split(',') if field.strip()]
+        
+        advanced_filters = None
+        if filters:
+            try:
+                import json
+                advanced_filters = json.loads(filters)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid filters JSON")
+        
+        advanced_sort = None
+        if sort_by:
+            advanced_sort = {"field": sort_by, "order": sort_order or "desc"}
+        
         # Perform search
         start_time = datetime.now()
-        results = search_engine.search(q, county_filter=county_filter)
+        results = search_engine.search(
+            q,
+            limit=limit,
+            county_filter=county_filter,
+            field_filter=field_filter,
+            spatial_params=spatial_params,
+            is_advanced=is_advanced,
+            search_fields=advanced_search_fields,
+            filters=advanced_filters,
+            sort_options=advanced_sort
+        )
         search_duration = (datetime.now() - start_time).total_seconds()
         
-        # Apply limit if specified
-        if limit and limit > 0:
-            results = results[:limit]
         
         # Convert to response format with None safety
         search_results = []
         for result in results:
             search_results.append(SearchResult(
-                global_parcel_uid=result.get("global_parcel_uid") or "",
-                pidn=result.get("pidn") or "",
+                GFI=result.get("GFI") or "",
+                pidn=result.get("county_parcel_id") or "",
                 owner=result.get("owner") or "",
-                mailing_address=result.get("mailing_address") or "",
-                physical_address=result.get("physical_address") or "",
+                mailing_address=result.get("mail") or "",
+                physical_address=result.get("physical") or "",
                 county=result.get("county") or "",
                 state=result.get("state") or "",
                 bbox=result.get("bbox"),  # bbox can be None
