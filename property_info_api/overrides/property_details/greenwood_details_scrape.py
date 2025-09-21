@@ -3,6 +3,7 @@ from general_parsers.property_details import GeneralPropertyDetailsScraper
 import re
 import json
 import copy
+from pathlib import Path
 
 class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
     """
@@ -194,8 +195,14 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
     def map_to_canonical(self, raw_tables: dict) -> dict:
         """Override to handle Greenwood's specific data structure."""
         # Load canonical structure
-        with open('property_info_api/structure.json') as f:
-            canonical = json.load(f)
+        try:
+            with open('structure.json') as f:
+                canonical = json.load(f)
+        except FileNotFoundError:
+            # Fallback to relative path
+            structure_path = Path(__file__).parent.parent / 'structure.json'
+            with open(structure_path) as f:
+                canonical = json.load(f)
         result = copy.deepcopy(canonical)
         developments = []
         
@@ -350,18 +357,24 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                         # Extract total actual value (first dollar amount)
                                         total_match = re.search(r'\$\s*([0-9,]+)', v)
                                         if total_match:
-                                            result['value_summary']['total_value'] = f"${total_match.group(1)}"
-                                            print(f"      -> Extracted total actual value: ${total_match.group(1)}")
+                                            # Convert to number by removing commas and converting to float
+                                            total_value = float(total_match.group(1).replace(',', ''))
+                                            result['value_summary']['total_value'] = total_value
+                                            print(f"      -> Extracted total actual value: {total_value}")
                                         
                                         # Extract land and improvement values from the value string
                                         land_match = re.search(r'\$\s*([0-9,]+)\s+Land', v)
                                         improvement_match = re.search(r'\$\s*([0-9,]+)\s+Improvements', v)
                                         if land_match:
-                                            result['value_summary']['land'] = f"${land_match.group(1)}"
-                                            print(f"      -> Extracted land value: ${land_match.group(1)}")
+                                            # Convert to number by removing commas and converting to float
+                                            land_value = float(land_match.group(1).replace(',', ''))
+                                            result['value_summary']['land'] = land_value
+                                            print(f"      -> Extracted land value: {land_value}")
                                         if improvement_match:
-                                            result['value_summary']['developments'] = f"${improvement_match.group(1)}"
-                                            print(f"      -> Extracted improvement value: ${improvement_match.group(1)}")
+                                            # Convert to number by removing commas and converting to float
+                                            developments_value = float(improvement_match.group(1).replace(',', ''))
+                                            result['value_summary']['developments'] = developments_value
+                                            print(f"      -> Extracted improvement value: {developments_value}")
                                         matched = True
 
                                     elif 'total' in norm_k:

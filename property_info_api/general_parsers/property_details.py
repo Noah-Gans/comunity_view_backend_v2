@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 import json
 import copy
+from pathlib import Path
 
 class GeneralPropertyDetailsScraper:
     """
@@ -30,21 +31,18 @@ class GeneralPropertyDetailsScraper:
 
     def write_html_to_file(self, html: str):
         """Write the raw HTML to a file named by county and timestamp."""
-        filename = f'property_details_{self.county}_{self.timestamp}.html'
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(html)
+        # Disabled for mass collection to avoid file clutter
+        pass
 
     def write_tables_to_file(self, tables: dict):
         """Write the extracted tables to a JSON file named by county and timestamp."""
-        filename = f'property_details_tables_{self.county}_{self.timestamp}.json'
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(tables, f, indent=2, ensure_ascii=False)
+        # Disabled for mass collection to avoid file clutter
+        pass
 
     def write_filled_json(self, filled: dict):
         """Write the filled canonical structure to a JSON file named by county and timestamp."""
-        filename = f'property_details_filled_{self.county}_{self.timestamp}.json'
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(filled, f, indent=2, ensure_ascii=False)
+        # Disabled for mass collection to avoid file clutter
+        pass
 
     def fetch(self):
         """Fetch the page and parse with BeautifulSoup. Writes raw HTML to a file for debugging."""
@@ -198,36 +196,37 @@ class GeneralPropertyDetailsScraper:
         return k
 
     def map_to_canonical(self, raw_tables: dict) -> dict:
-        """
-        Maps raw table data to a canonical JSON structure defined in structure.json.
-        This function fills in the values from the raw tables into the canonical structure.
-        """
-        # Define robust matching options for each canonical field
-        field_patterns = {
-            'county_parcel_id': [r'pidn', r'parcel number'],
-            'tax_id': [r'tax id'],
-            'physical_address': [r'street address', r'property address', r'address'],
-            'mailing_address': [r'mailing address'],
-            'owner_name': [r'owner'],
-            'tax_district': [r'tax district'],
-            'total_acres': [r'total acres', r'acres'],
-            'legal.subdivision': [r'subdivision'],
-            'legal.lot': [r'lot'],
-            'legal.block': [r'block'],
-            'legal.section': [r'section'],
-            'legal.township': [r'township'],
-            'legal.range': [r'range'],
-            'legal.extended': [r'extended legal', r'extended'],
-            'value_summary.land': [r'land'],
-            'value_summary.developments': [r'improvement', r'developments'],
-        }
+        """Maps raw table data to a canonical JSON structure defined in structure.json."""
         # Load canonical structure
-        with open('property_info_api/structure.json') as f:
-            canonical = json.load(f)
+        structure_path = Path(__file__).parent.parent / 'structure.json'
+        try:
+            with open(structure_path) as f:
+                canonical = json.load(f)
+        except FileNotFoundError:
+            # Try absolute path
+            structure_path = Path(__file__).parent.parent.parent / 'property_info_api' / 'structure.json'
+            with open(structure_path) as f:
+                canonical = json.load(f)
+    
         result = copy.deepcopy(canonical)
         developments = []
         in_development_section = False
         current_dev = None
+        
+        # Define field patterns for mapping
+        field_patterns = {
+            'county_parcel_id': [r'parcel.*id', r'pidn', r'county.*parcel'],
+            'tax_id': [r'tax.*id', r'account.*number'],
+            'owner_name': [r'owner', r'name'],
+            'physical_address': [r'street.*address', r'physical.*address', r'property.*address'],
+            'mailing_address': [r'mailing.*address', r'mail.*address'],
+            'total_acres': [r'total.*acre', r'acres?$', r'acre.*total'],
+            'legal.location': [r'legal.*description', r'location', r'legal.*location'],
+            'deed': [r'deed', r'document'],
+            'value_summary.total_value': [r'total.*value', r'actual.*value'],
+            'value_summary.land': [r'land.*value'],
+            'value_summary.developments': [r'improvement.*value', r'building.*value', r'development.*value']
+        }
         
         # Process all data sources (tables, dl, spans, divs, etc.)
         for source_name, source_data in raw_tables.items():
@@ -399,42 +398,32 @@ def scrape_property_details(url: str, config: dict = None) -> dict:
     use_greenwood = (
         'greenwood' in url.lower() or 
         'maps.greenwoodmap.com' in url.lower() or
-        county in ['fremont', 'sublette']
+        county in ['fremont_county_wy', 'sublette_county_wy']
     )
     use_lincoln = (
         'lincoln' in url.lower() or
-        county in ['lincoln']
+        county in ['lincoln_county_wy']
     )
     use_teton_idaho = (
         'tetonidaho' in url.lower() or
         'tetonidaho.maps.arcgis.com' in url.lower() or
-        county in ['teton_idaho', 'teton idaho', 'tetonidaho']
+        county in ['teton_county_id']
     )
     use_teton = (
         ('teton' in url.lower() and 'tetonidaho' not in url.lower()) or
         'tetoncountywy.gov' in url.lower() or
-        county in ['teton']
+        county in ['teton_county_wy']
     )
     
     print(f"DEBUG: Use Greenwood = {use_greenwood}")
-    print(f"DEBUG: 'greenwood' in url = {'greenwood' in url.lower()}")
-    print(f"DEBUG: 'maps.greenwoodmap.com' in url = {'maps.greenwoodmap.com' in url.lower()}")
-    print(f"DEBUG: county in ['fremont', 'sublette'] = {county in ['fremont', 'sublette']}")
     print(f"DEBUG: Use Lincoln = {use_lincoln}")
-    print(f"DEBUG: 'lincoln' in url = {'lincoln' in url.lower()}")
-    print(f"DEBUG: county in ['lincoln'] = {county in ['lincoln']}")
     print(f"DEBUG: Use Teton = {use_teton}")
-    print(f"DEBUG: 'teton' in url = {'teton' in url.lower()}")
-    print(f"DEBUG: 'tetoncountywy.gov' in url = {'tetoncountywy.gov' in url.lower()}")
-    print(f"DEBUG: county in ['teton'] = {county in ['teton']}")
     print(f"DEBUG: Use Teton Idaho = {use_teton_idaho}")
-    print(f"DEBUG: 'tetonidaho' in url = {'tetonidaho' in url.lower()}")
-    print(f"DEBUG: 'tetonidaho.maps.arcgis.com' in url = {'tetonidaho.maps.arcgis.com' in url.lower()}")
-    print(f"DEBUG: county in ['teton_idaho', 'teton idaho'] = {county in ['teton_idaho', 'teton idaho']}")
+    
     if use_greenwood:
         try:
             print("DEBUG: Attempting to import Greenwood scraper...")
-            from overrides.greenwood_details_scrape import GreenwoodPropertyDetailsScraper
+            from overrides.property_details.greenwood_details_scrape import GreenwoodPropertyDetailsScraper
             print("DEBUG: Greenwood scraper imported successfully")
             scraper = GreenwoodPropertyDetailsScraper(url, config)
             print("DEBUG: Using Greenwood scraper")
@@ -446,7 +435,7 @@ def scrape_property_details(url: str, config: dict = None) -> dict:
     elif use_teton_idaho:
         try:
             print("DEBUG: Attempting to import Teton Idaho scraper...")
-            from overrides.teton_county_id_details import scrape_property_details as teton_idaho_scrape_property_details
+            from overrides.property_details.teton_county_id_details import scrape_property_details as teton_idaho_scrape_property_details
             print("DEBUG: Teton Idaho scraper imported successfully")
             print("DEBUG: Using Teton Idaho scraper")
             return teton_idaho_scrape_property_details(url)
@@ -457,7 +446,7 @@ def scrape_property_details(url: str, config: dict = None) -> dict:
     elif use_lincoln:
         try:
             print("DEBUG: Attempting to import Lincoln scraper...")
-            from overrides.lincoln_county_details import LincolnPropertyDetailsScraper
+            from overrides.property_details.lincoln_county_wy_details import LincolnPropertyDetailsScraper
             print("DEBUG: Lincoln scraper imported successfully")
             scraper = LincolnPropertyDetailsScraper(url, config)
             print("DEBUG: Using Lincoln scraper")
@@ -469,7 +458,7 @@ def scrape_property_details(url: str, config: dict = None) -> dict:
     elif use_teton:
         try:
             print("DEBUG: Attempting to import Teton scraper...")
-            from overrides.teton_county_wy_detials import scrape_property_details as teton_scrape_property_details
+            from overrides.property_details.teton_county_wy_detials import scrape_property_details as teton_scrape_property_details
             print("DEBUG: Teton scraper imported successfully")
             print("DEBUG: Using Teton scraper")
             return teton_scrape_property_details(url)

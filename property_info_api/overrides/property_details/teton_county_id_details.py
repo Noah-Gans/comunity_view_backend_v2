@@ -22,7 +22,8 @@ class TetonIdahoPropertyDetailsScraper:
     
     def __init__(self, url: str):
         self.url = url
-        self.parcel_id = self.extract_parcel_id_from_url()
+        # For Teton Idaho, the "url" is actually the parcel ID
+        self.parcel_id = url if url and not url.startswith('http') else self.extract_parcel_id_from_url()
         self.database_path = Path(TETON_IDAHO_DB_PATH)
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         
@@ -398,5 +399,16 @@ class TetonIdahoPropertyDetailsScraper:
 
 def scrape_property_details(url: str) -> dict:
     """Main entry point for Teton County Idaho property details scraping."""
-    scraper = TetonIdahoPropertyDetailsScraper(url)
-    return scraper.scrape() 
+    print(f"[TETON_IDAHO] Starting scrape for URL: {url}")
+    
+    try:
+        scraper = TetonIdahoPropertyDetailsScraper(url)
+        print(f"[TETON_IDAHO] Scraper created, parcel_id: {scraper.parcel_id}")
+        
+        result = scraper.scrape()
+        print(f"[TETON_IDAHO] Scrape completed, result: {result}")
+        
+        return result
+    except Exception as e:
+        print(f"[TETON_IDAHO] Error during scrape: {e}")
+        return {"error": str(e), "county": "Teton Idaho"} 

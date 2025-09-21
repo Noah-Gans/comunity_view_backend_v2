@@ -390,25 +390,41 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         headers = []
         
         # Extract land value (row 0)
-        cells_land = table_rows[0].find_all(['td', 'th'], recursive=False)
-        values_land = [self.clean_text(c.get_text(' ', strip=True)) for c in cells_land]
-        land_value = float(values_land[-3].replace('$', '').replace(',', '').replace('.00', ''))  # Appraised value column
-        rows.append({"Land": land_value})
-        print(f"  Land value: {land_value}")
+        if len(table_rows) > 0:
+            cells_land = table_rows[0].find_all(['td', 'th'], recursive=False)
+            values_land = [self.clean_text(c.get_text(' ', strip=True)) for c in cells_land]
+            if len(values_land) >= 3:  # Check if we have enough columns
+                land_value = float(values_land[-3].replace('$', '').replace(',', '').replace('.00', ''))  # Appraised value column
+                rows.append({"Land": land_value})
+                print(f"  Land value: {land_value}")
+            else:
+                print(f"  Warning: Not enough columns in land row: {len(values_land)}")
         
-        # Extract improvement values (rows 1 and 2)
-        cells_dev_1 = table_rows[1].find_all(['td', 'th'], recursive=False)
-        values_dev_1 = [self.clean_text(c.get_text(' ', strip=True)) for c in cells_dev_1]
-        improvement_1 = float(values_dev_1[-3].replace('$', '').replace(',', '').replace('.00', ''))
+        # Extract improvement values (rows 1 and 2) - only if they exist
+        improvement_1 = 0
+        improvement_2 = 0
         
-        cells_dev_2 = table_rows[2].find_all(['td', 'th'], recursive=False)
-        values_dev_2 = [self.clean_text(c.get_text(' ', strip=True)) for c in cells_dev_2]
-        improvement_2 = float(values_dev_2[-3].replace('$', '').replace(',', '').replace('.00', ''))
+        if len(table_rows) > 1:
+            cells_dev_1 = table_rows[1].find_all(['td', 'th'], recursive=False)
+            values_dev_1 = [self.clean_text(c.get_text(' ', strip=True)) for c in cells_dev_1]
+            if len(values_dev_1) >= 3:
+                improvement_1 = float(values_dev_1[-3].replace('$', '').replace(',', '').replace('.00', ''))
+            else:
+                print(f"  Warning: Not enough columns in improvement row 1: {len(values_dev_1)}")
+        
+        if len(table_rows) > 2:
+            cells_dev_2 = table_rows[2].find_all(['td', 'th'], recursive=False)
+            values_dev_2 = [self.clean_text(c.get_text(' ', strip=True)) for c in cells_dev_2]
+            if len(values_dev_2) >= 3:
+                improvement_2 = float(values_dev_2[-3].replace('$', '').replace(',', '').replace('.00', ''))
+            else:
+                print(f"  Warning: Not enough columns in improvement row 2: {len(values_dev_2)}")
         
         # Calculate total improvements
         total_improvement = improvement_1 + improvement_2
-        rows.append({"Improvement": str(total_improvement)})
-        rows.append({"Total": str(land_value + total_improvement)})
+        if total_improvement > 0:
+            rows.append({"Improvements": total_improvement})
+            print(f"  Total improvements: {total_improvement}")
         
         return rows
     

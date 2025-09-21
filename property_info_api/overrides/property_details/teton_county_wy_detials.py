@@ -51,10 +51,8 @@ class TetonPropertyDetailsScraper:
     
     def write_api_data_to_file(self, data: dict, layer: int):
         """Write API response data to a file for debugging."""
-        filename = f'property_details_teton_layer_{layer}_{self.timestamp}.json'
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"[TETON] Layer {layer} data saved to: {filename}")
+        # Disabled for mass collection to avoid file clutter
+        pass
     
     def scrape(self) -> dict:
         """Main scraping method for Teton County."""
@@ -73,18 +71,18 @@ class TetonPropertyDetailsScraper:
         # Map to canonical structure
         result = self.map_to_canonical(layer_0_data, layer_2_data, layer_3_data)
         
-        # Write final result to file
-        filename = f'property_details_teton_final_{self.timestamp}.json'
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-        print(f"[TETON] Final result saved to: {filename}")
+        # Final result file writing disabled for mass collection
+        # print(f"[TETON] Final result processing complete")
         
         return result
     
     def map_to_canonical(self, layer_0_data: dict, layer_2_data: dict, layer_3_data: dict) -> dict:
         """Map ArcGIS data to our canonical structure."""
         # Load canonical structure
-        with open('property_info_api/structure.json') as f:
+        from pathlib import Path
+        structure_path = Path(__file__).parent.parent / 'structure.json'
+        
+        with open(structure_path) as f:
             canonical = json.load(f)
         
         result = copy.deepcopy(canonical)

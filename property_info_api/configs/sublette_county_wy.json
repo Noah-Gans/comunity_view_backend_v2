@@ -1,0 +1,353 @@
+{
+  "county": "sublette_county_wy",
+  "description": "Sublette County Wyoming data mapping configuration",
+  "mappings": {
+    "general_info": {
+      "county_state": {
+        "sources": [
+          { "path": "county", "priority": 1, "transform": "format_county_state" }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 },
+          { "path": "tax_data.owner_name", "priority": 2 }
+        ]
+      },
+      "physical_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 },
+          { "path": "tax_data.street_address", "priority": 2 }
+        ]
+      },
+      "mailing_address": {
+        "sources": [
+          { "path": "property_data.mailing_address", "priority": 1 },
+          { "path": "tax_data.mailing_address", "priority": 2 }
+        ]
+      },
+      "county_parcel_id": {
+        "sources": [
+          { "path": "property_data.county_parcel_id", "priority": 1 }
+        ]
+      },
+      "tax_id": {
+        "sources": [
+          { "path": "tax_data.tax_id", "priority": 1 },
+          { "path": "property_data.tax_id", "priority": 2 }
+        ]
+      },
+      "account_number": {
+        "sources": [
+          { "path": "tax_data.account_number", "priority": 1 }
+        ]
+      },
+      "acres": {
+        "sources": [
+          { "path": "property_data.total_acres", "priority": 1 }
+        ]
+      }
+    },
+    "tax": {
+      "tax_id": {
+        "sources": [
+          { "path": "tax_data.tax_id", "priority": 1 }
+        ]
+      },
+      "tax_year": {
+        "sources": [
+          { "path": "tax_data.current_year", "priority": 1 }
+        ]
+      },
+      "assessed_value": {
+        "sources": [
+          { "path": "tax_data.assessed_value", "priority": 1 }
+        ]
+      },
+      "taxable_value": {
+        "sources": [
+          { "path": "tax_data.taxable_value", "priority": 1 }
+        ]
+      },
+      "tax_amount": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_levied", "priority": 1 }
+        ]
+      },
+      "first_half_due_date": {
+        "sources": [
+          { "path": "tax_data.first_half_due_date", "priority": 1 }
+        ]
+      },
+      "second_half_due_date": {
+        "sources": [
+          { "path": "tax_data.second_half_due_date", "priority": 1 }
+        ]
+      },
+      "status": {
+        "sources": [
+          { "path": "tax_data.status", "priority": 1 }
+        ]
+      },
+      "tax_district": {
+        "sources": [
+          { "path": "tax_data.district", "priority": 1 },
+          { "path": "property_data.tax_district", "priority": 2 }
+        ]
+      },
+      "mill_levy": {
+        "sources": [
+          { "path": "tax_data.mill_levy", "priority": 1 }
+        ]
+      },
+      "account_number": {
+        "sources": [
+          { "path": "tax_data.account_number", "priority": 1 }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 },
+          { "path": "tax_data.owner_name", "priority": 2 }
+        ]
+      },
+      "property_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 },
+          { "path": "tax_data.street_address", "priority": 2 }
+        ]
+      },
+      "total_tax_levied": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_levied", "priority": 1 }
+        ]
+      },
+      "tax_received": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_paid", "priority": 1 }
+        ]
+      },
+      "amount_due": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.amount_due", "priority": 1 }
+        ]
+      },
+      "first_half_levied": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_levied", "priority": 1, "transform": "divide_by_two" }
+        ]
+      },
+      "first_half_paid": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_paid", "priority": 1, "transform": "divide_by_two" }
+        ]
+      },
+      "second_half_levied": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_levied", "priority": 1, "transform": "divide_by_two" }
+        ]
+      },
+      "second_half_paid": {
+        "sources": [
+          { "path": "tax_data.current_taxes.total.tax_paid", "priority": 1, "transform": "divide_by_two" }
+        ]
+      },
+      "historical_data": {
+        "sources": [
+          { "path": "tax_data.historical_taxes", "priority": 1, "transform": "standardize_historical" }
+        ]
+      }
+    },
+    "property_details": {
+      "county_parcel_id": {
+        "sources": [
+          { "path": "property_data.county_parcel_id", "priority": 1 }
+        ]
+      },
+      "tax_id": {
+        "sources": [
+          { "path": "property_data.tax_id", "priority": 1 }
+        ]
+      },
+      "physical_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 }
+        ]
+      },
+      "mailing_address": {
+        "sources": [
+          { "path": "property_data.mailing_address", "priority": 1 }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 }
+        ]
+      },
+      "legal_description": {
+        "sources": [
+          { "path": "property_data.legal.location", "priority": 1 },
+          { "path": "tax_data.legal_description", "priority": 2 }
+        ]
+      },
+      "deed": {
+        "sources": [
+          { "path": "property_data.deed", "priority": 1 }
+        ]
+      },
+      "total_property_value": {
+        "sources": [
+          { 
+            "path": "property_data.value_summary.land", 
+            "priority": 1, 
+            "transform": "add_two_fields",
+            "fields_to_add": ["land_value", "developments_value"]
+          }
+        ]
+      },
+      "land_value": {
+        "sources": [
+          { "path": "property_data.value_summary.land", "priority": 1 }
+        ]
+      },
+      "developments_value": {
+        "sources": [
+          { "path": "property_data.value_summary.developments", "priority": 1 }
+        ]
+      },
+      "total_acreage": {
+        "sources": [
+          { "path": "property_data.total_acres", "priority": 1 }
+        ]
+      },
+      "acreage_breakdown": {
+        "sources": [
+          { "path": "property_data.acreage_breakdown", "priority": 1, "transform": "format_acreage_breakdown" }
+        ]
+      },
+      "developments": {
+        "sources": [
+          { "path": "property_data.developments", "priority": 1, "transform": "standardize_developments" }
+        ]
+      },
+      "num_developments": {
+        "sources": [
+          { "path": "property_data.developments", "priority": 1, "transform": "count_developments" }
+        ]
+      }
+    },
+    "clerk": {
+      "deeds": {
+        "sources": [
+          { "path": "clerk_data.deeds", "priority": 1, "note": "Not implemented yet" }
+        ]
+      },
+      "mortgages": {
+        "sources": [
+          { "path": "clerk_data.mortgages", "priority": 1, "note": "Not implemented yet" }
+        ]
+      },
+      "liens": {
+        "sources": [
+          { "path": "clerk_data.liens", "priority": 1, "note": "Not implemented yet" }
+        ]
+      }
+    },
+    "development": {
+      "id": {
+        "sources": [{"path": "development.Building Name", "priority": 1}]
+      },
+      "description": {
+        "sources": [
+          {"path": "development.Type", "priority": 1},
+          {"path": "development.Building Component", "priority": 2}
+        ]
+      },
+      "stories": {
+        "sources": [{"path": "development.Stories", "priority": 1}]
+      },
+      "sq_ft": {
+        "sources": [{"path": "development.Sq Ft", "priority": 1}]
+      },
+      "exterior": {
+        "sources": [{"path": "development.Exterior", "priority": 1}]
+      },
+      "roof_cover": {
+        "sources": [{"path": "development.Roof Cover", "priority": 1}]
+      },
+      "bedrooms": {
+        "sources": [{"path": "development.bedrooms", "priority": 1}]
+      },
+      "year_built": {
+        "sources": [{"path": "development.Year Built*", "priority": 1}]
+      }
+    },
+    "historical_field_mappings": {
+      "year": {
+        "sources": [
+          { "path": "historical_record.year", "priority": 1 }
+        ]
+      },
+      "tax_levied": {
+        "sources": [
+          { "path": "historical_record.tax_levied", "priority": 1 }
+        ]
+      },
+      "tax_paid": {
+        "sources": [
+          { "path": "historical_record.tax_paid", "priority": 1 }
+        ]
+      },
+      "date_paid": {
+        "sources": [
+          { "path": "historical_record.date_paid", "priority": 1 }
+        ]
+      },
+      "amount_due": {
+        "sources": [
+          { "path": "historical_record.amount_due", "priority": 1 }
+        ]
+      },
+      "first_half_tax_levied": {
+        "sources": [
+          { "path": "historical_record.first_half.tax_levied", "priority": 1 }
+        ]
+      },
+      "first_half_tax_paid": {
+        "sources": [
+          { "path": "historical_record.first_half.tax_paid", "priority": 1 }
+        ]
+      },
+      "first_half_date_paid": {
+        "sources": [
+          { "path": "historical_record.first_half.date_paid", "priority": 1 }
+        ]
+      },
+      "first_half_amount_due": {
+        "sources": [
+          { "path": "historical_record.first_half.amount_due", "priority": 1 }
+        ]
+      },
+      "second_half_tax_levied": {
+        "sources": [
+          { "path": "historical_record.second_half.tax_levied", "priority": 1 }
+        ]
+      },
+      "second_half_tax_paid": {
+        "sources": [
+          { "path": "historical_record.second_half.tax_paid", "priority": 1 }
+        ]
+      },
+      "second_half_date_paid": {
+        "sources": [
+          { "path": "historical_record.second_half.date_paid", "priority": 1 }
+        ]
+      },
+      "second_half_amount_due": {
+        "sources": [
+          { "path": "historical_record.second_half.amount_due", "priority": 1 }
+        ]
+      }
+    }
+  }
+}
