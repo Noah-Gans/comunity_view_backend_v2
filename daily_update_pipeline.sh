@@ -6,6 +6,7 @@
 # 2. Update Martin server with new PMTiles
 # 3. Regenerate search index and reload search API
 # 4. Clean up old files
+# 5. Send email notification
 
 set -e  # Exit on any error
 
@@ -16,6 +17,12 @@ SEARCH_API_DIR="$SCRIPT_DIR/search_api"
 TILES_BASE_DIR="$HOME/tiles"
 MARTIN_CONFIG="$PMTILES_DIR/martin_config.yaml"
 LOG_FILE="$SCRIPT_DIR/daily_update.log"
+
+# Email configuration - UPDATE THESE VALUES
+EMAIL_TO="your-personal-gmail@gmail.com"      # Change this to your Gmail
+EMAIL_FROM="your-personal-gmail@gmail.com"    # Change this to your Gmail  
+SMTP_USER="your-personal-gmail@gmail.com"     # Your Gmail for authentication
+SMTP_PASS="your-weird-password-thing"        # Your Gmail app password
 
 # Timestamp for this run
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -29,14 +36,42 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Email notification function using Python script
+send_email_notification() {
+    local notification_type="$1"
+    local additional_args="$2"
+    
+    # Check if email is configured
+    if [[ "$EMAIL_TO" == "your-email@gmail.com" ]]; then
+        warning "Email not configured - skipping email notification"
+        return 0
+    fi
+    
+    # Check if Python script exists
+    if [[ ! -f "$SCRIPT_DIR/send_notification.py" ]]; then
+        warning "Email script not found at $SCRIPT_DIR/send_notification.py"
+        return 0
+    fi
+    
+    # Activate virtual environment and run email script
+    source "$SCRIPT_DIR/venv/bin/activate" || {
+        warning "Could not activate virtual environment for email"
+        return 0
+    }
+    
+    log "📧 Sending $notification_type notification..."
+    
+    # Run the Python email script
+    if python3 "$SCRIPT_DIR/send_notification.py" "$notification_type" "$EMAIL_TO" "$EMAIL_FROM" "$SMTP_USER" "$SMTP_PASS" "$LOG_FILE" $additional_args; then
+        log "✅ Email notification sent successfully"
+    else
+        warning "Failed to send email notification"
+    fi
+}
+
 # Logging function
 log() {
     echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
-}
-
-error() {
-    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" | tee -a "$LOG_FILE"
-    exit 1
 }
 
 warning() {
@@ -45,6 +80,19 @@ warning() {
 
 info() {
     echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')] INFO:${NC} $1" | tee -a "$LOG_FILE"
+}
+
+# Enhanced error function with email notification
+error() {
+    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" | tee -a "$LOG_FILE"
+    
+    # Calculate duration
+    DURATION=$(($(date +%s) - START_TIME))
+    
+    # Send error email notification
+    send_email_notification "error" "'$1' $DURATION"
+    
+    exit 1
 }
 
 # Function to check if a command exists
@@ -119,8 +167,87 @@ cleanup_old_runs() {
     log "✅ Cleanup completed"
 }
 
+# Function to check Martin server health
+check_martin_health() {
+    local max_retries=5
+    local retry_count=0
+    
+    log "🔍 Checking Martin server health..."
+    
+    while [ $retry_count -lt $max_retries ]; do
+        if curl -s -f "http://localhost:3000/health" > /dev/null 2>&1; then
+            log "✅ Martin server health check passed"
+            return 0
+        else
+            retry_count=$((retry_count + 1))
+            log "⏳ Martin health check attempt $retry_count/$max_retries failed, retrying in 3 seconds..."
+            sleep 3
+        fi
+    done
+    
+    warning "❌ Martin server health check failed after $max_retries attempts"
+    return 1
+}
+
+# Function to check Search API health
+check_search_api_health() {
+    local max_retries=5
+    local retry_count=0
+    
+    log " Checking Search API health..."
+    
+    while [ $retry_count -lt $max_retries ]; do
+        if curl -s -f "http://localhost:8000/health" > /dev/null 2>&1; then
+            log "✅ Search API health check passed"
+            return 0
+        else
+            retry_count=$((retry_count + 1))
+            log "⏳ Search API health check attempt $retry_count/$max_retries failed, retrying in 3 seconds..."
+            sleep 3
+        fi
+    done
+    
+    warning "❌ Search API health check failed after $max_retries attempts"
+    return 1
+}
+
+# Function to get detailed health status
+get_health_status() {
+    local health_output=""
+    
+    # Check Martin server
+    log "📊 Gathering Martin server status..."
+    if curl -s -f "http://localhost:3000/health" > /dev/null 2>&1; then
+        health_output+="\n✅ Martin Server (Tiles):\n"
+        health_output+="$(curl -s "http://localhost:3000/health" 2>/dev/null || echo "Health endpoint not available")\n"
+    else
+        health_output+="\n❌ Martin Server (Tiles): Not responding\n"
+    fi
+    
+    # Check Search API
+    log "📊 Gathering Search API status..."
+    if curl -s -f "http://localhost:8000/health" > /dev/null 2>&1; then
+        health_output+="\n✅ Search API:\n"
+        health_output+="$(curl -s "http://localhost:8000/health" 2>/dev/null || echo "Health endpoint not available")\n"
+        
+        # Also get stats if available
+        if curl -s -f "http://localhost:8000/stats" > /dev/null 2>&1; then
+            health_output+="\n�� Search API Stats:\n"
+            health_output+="$(curl -s "http://localhost:8000/stats" 2>/dev/null || echo "Stats endpoint not available")\n"
+        fi
+    else
+        health_output+="\n❌ Search API: Not responding\n"
+    fi
+    
+    echo -e "$health_output"
+}
+
 # Main execution
 main() {
+    START_TIME=$(date +%s)  # Record start time for duration calculation
+    local pipeline_status="success"
+    local error_message=""
+    
     log "🚀 Starting daily update pipeline at $TIMESTAMP"
     
     # Create necessary directories
@@ -128,20 +255,30 @@ main() {
     mkdir -p "$TILES_BASE_DIR/runs"
     
     # Change to PMTiles directory
-    cd "$PMTILES_DIR" || error "Could not change to PMTiles directory"
+    cd "$PMTILES_DIR" || {
+        pipeline_status="error"
+        error_message="Could not change to PMTiles directory"
+        error "$error_message"
+    }
     
     # Step 1: Run PMTiles pipeline
     log "📥 Step 1: Running PMTiles pipeline..."
     
     # Activate virtual environment
-    source "$SCRIPT_DIR/venv/bin/activate" || error "Could not activate virtual environment"
+    source "$SCRIPT_DIR/venv/bin/activate" || {
+        pipeline_status="error"
+        error_message="Could not activate virtual environment"
+        error "$error_message"
+    }
     
     # Run the ownership pipeline for all counties
     log "🔄 Running ownership pipeline for all counties..."
-    if python main.py --ownership --generate-pmtiles; then
+    if python main.py --ownership --skip-data; then
         log "✅ PMTiles pipeline completed successfully"
     else
-        error "PMTiles pipeline failed"
+        pipeline_status="error"
+        error_message="PMTiles pipeline failed"
+        error "$error_message"
     fi
     
     # Step 2: Organize new tiles
@@ -187,27 +324,58 @@ EOF
     log "⚙️ Step 4: Restarting Martin server..."
     restart_martin_server
     
+    # Health check Martin server
+    if check_martin_health; then
+        log "✅ Martin server is healthy"
+    else
+        warning "⚠️ Martin server health check failed"
+    fi
+    
     # Step 5: Regenerate search index
     log "🔍 Step 5: Regenerating search index..."
     
-    cd "$SEARCH_API_DIR" || error "Could not change to search API directory"
+    cd "$SEARCH_API_DIR" || {
+        pipeline_status="error"
+        error_message="Could not change to search API directory"
+        error "$error_message"
+    }
     
     # Activate virtual environment again
-    source "$SCRIPT_DIR/venv/bin/activate" || error "Could not activate virtual environment"
+    source "$SCRIPT_DIR/venv/bin/activate" || {
+        pipeline_status="error"
+        error_message="Could not activate virtual environment"
+        error "$error_message"
+    }
     
     # Generate new search index
     if python search_file_generator.py; then
         log "✅ Search index regenerated successfully"
     else
-        error "Search index generation failed"
+        pipeline_status="error"
+        error_message="Search index generation failed"
+        error "$error_message"
     fi
     
     # Step 6: Reload search API
-    log "🔄 Step 6: Reloading search API..."
+    log " Step 6: Reloading search API..."
     reload_search_api
+    
+    # Health check Search API
+    if check_search_api_health; then
+        log "✅ Search API is healthy"
+    else
+        warning "⚠️ Search API health check failed"
+    fi
     
     # Step 7: Cleanup old runs
     cleanup_old_runs
+    
+    # Calculate duration
+    DURATION=$(($(date +%s) - START_TIME))
+    
+    # Gather health status for email
+    log "📊 Gathering final health status..."
+    HEALTH_STATUS=$(get_health_status)
     
     # Final status
     log "🎉 Daily update pipeline completed successfully!"
@@ -220,9 +388,13 @@ EOF
     
     # Show disk usage
     log "💾 Disk usage for tiles:"
+    DISK_USAGE=$(du -sh "$TILES_BASE_DIR" | cut -f1)
     du -sh "$TILES_BASE_DIR" | tee -a "$LOG_FILE"
     
     log "✅ Daily update pipeline completed at $(date)"
+    
+    # Send success email notification with health status
+    send_email_notification "success" "$DURATION '$TILES_RUN_DIR' '$LATEST_SYMLINK' '$DISK_USAGE' '$HEALTH_STATUS'"
 }
 
 # Error handling
