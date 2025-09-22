@@ -13,6 +13,7 @@ from overrides.tax.tyler_technologies_tax import scrape_tax
 from overrides.property_details.greenwood_details_scrape import scrape_property_details
 from general_parsers.property_details import GeneralPropertyDetailsScraper, scrape_property_details as general_scrape_property_details
 from general_parsers.tax import scrape_tax as general_scrape_tax
+from general_parsers.clerk import scrape_clerk  # Add this import
 
 class APIWrapper:
     """Wrapper around existing property_info_api scrapers"""
@@ -32,8 +33,8 @@ class APIWrapper:
         if parcel_data.get("property_details_key"):
             fields["property_details_field"] = parcel_data["property_details_key"]
             
-        if parcel_data.get("clerk_records_key"):
-            fields["clerk_field"] = parcel_data["clerk_records_key"]
+        # Always include clerk_field, even if null or missing
+        fields["clerk_field"] = parcel_data.get("clerk_records_key")  # This will be None if missing
             
         # Use existing construct_links function
         try:
@@ -79,12 +80,19 @@ class APIWrapper:
             return {"error": str(e), "source": f"property_scraper_{county}"}
     
     async def scrape_clerk_data(self, county: str, url: str) -> Optional[Dict]:
-        """Scrape clerk data - placeholder for future implementation"""
+        """Scrape clerk data using existing scrapers"""
         if not url:
             return None
             
-        # Clerk scraping not implemented yet
-        return {"message": "Clerk scraping not implemented", "source": f"clerk_scraper_{county}"}
+        try:
+            # Use the existing clerk scraper - it will route to Teton County scraper
+            result = scrape_clerk(url, county=county)
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error scraping clerk data for {county} at {url}: {e}")
+            return {"error": str(e), "source": f"clerk_scraper_{county}"}
     
     async def collect_parcel_data(self, county: str, parcel_data: Dict) -> Dict:
         """Collect all data types for a single parcel"""
@@ -112,14 +120,6 @@ class APIWrapper:
                 result["scraped_data"]["tax_data"] = tax_data
                 if tax_data.get("error"):
                     result["errors"].append(f"Tax scraping: {tax_data['error']}")
-        else:
-            # No tax key available - create placeholder
-            result["scraped_data"]["tax_data"] = {
-                "status": "no_tax_key",
-                "reason": "Parcel has no tax_details_key in GeoJSON",
-                "county": county,
-                "scraped": False
-            }
         
         # Scrape property data
         if urls.get("property_details_field"):
@@ -128,27 +128,11 @@ class APIWrapper:
                 result["scraped_data"]["property_data"] = property_data
                 if property_data.get("error"):
                     result["errors"].append(f"Property scraping: {property_data['error']}")
-        else:
-            # No property key available - create placeholder
-            result["scraped_data"]["property_data"] = {
-                "status": "no_property_key", 
-                "reason": "Parcel has no property_details_key in GeoJSON",
-                "county": county,
-                "scraped": False
-            }
         
         # Scrape clerk data (placeholder)
         if urls.get("clerk_field"):
             clerk_data = await self.scrape_clerk_data(county, urls["clerk_field"])
             if clerk_data:
                 result["scraped_data"]["clerk_data"] = clerk_data
-        else:
-            # No clerk key available - create placeholder
-            result["scraped_data"]["clerk_data"] = {
-                "status": "no_clerk_key",
-                "reason": "Parcel has no clerk_records_key in GeoJSON", 
-                "county": county,
-                "scraped": False
-            }
         
         return result

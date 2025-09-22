@@ -12,32 +12,40 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from collectors.api_wrapper import APIWrapper
 from scheduling.rate_limiter import RateLimiter
+from config.collection_config import CollectionConfig
 
 class BatchManager:
     """Manages batch processing of parcels with rate limiting"""
     
     def __init__(self):
+        self.config = CollectionConfig()
         self.api_wrapper = APIWrapper()
-        self.rate_limiter = RateLimiter()
+        self.rate_limiter = RateLimiter(
+            requests_per_second=self.config.requests_per_second
+        )  # Only pass requests_per_second
         
     async def process_county_parcels(self, county: str, parcels: List[Dict], 
-                                   file_manager, progress_tracker, logger):
-        """Process all parcels for a county in batches"""
+                                file_manager, progress_tracker, logger,
+                                progress_manager=None):
+        """Process all parcels for a county with progress tracking"""
         
-        logger.info(f"Processing {len(parcels)} parcels for {county}")
+        # Create semaphore for this county
+        semaphore = asyncio.Semaphore(self.config.max_concurrent_requests)
         
-        # Process parcels with rate limiting
-        semaphore = asyncio.Semaphore(15)  # Max 15 concurrent requests
-        
+        # Create tasks for all parcels
         tasks = []
-        for parcel in parcels:
+        for i, parcel in enumerate(parcels):
             task = self._process_single_parcel_with_semaphore(
-                semaphore, county, parcel, file_manager, progress_tracker, logger
+                semaphore, county, parcel, file_manager, progress_tracker, logger, progress_manager
             )
             tasks.append(task)
         
-        # Execute all tasks
+        # Process all parcels
         results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Remove this line - progress is now updated per parcel
+        # if progress_manager:
+        #     progress_manager.update_progress(county, len(parcels))
         
         # Count successes and failures
         successes = sum(1 for r in results if isinstance(r, dict) and not r.get("error"))
@@ -49,7 +57,7 @@ class BatchManager:
     
     async def _process_single_parcel_with_semaphore(self, semaphore, county: str, 
                                                    parcel: Dict, file_manager, 
-                                                   progress_tracker, logger):
+                                                   progress_tracker, logger, progress_manager=None):
         """Process a single parcel with semaphore for concurrency control"""
         
         async with semaphore:
@@ -64,7 +72,12 @@ class BatchManager:
                 # Write to appropriate files
                 await file_manager.write_parcel_data(county, result)
                 
-                # Update progress
+                # Update progress immediately after successful processing
+                if progress_manager and not result.get("error"):
+                    current_progress = progress_manager.get_completed_count(county)
+                    progress_manager.update_progress(county, current_progress + 1)
+                
+                # Update progress tracker
                 progress_tracker.increment_completed()
                 
                 if result.get("errors"):

@@ -1,5 +1,9 @@
 """Collection configuration settings"""
 
+import os
+import json
+from typing import List, Dict, Optional
+
 class CollectionConfig:
     """Configuration for mass data collection"""
     
@@ -16,7 +20,7 @@ class CollectionConfig:
         self.retry_delay = 5.0
         
         # File output settings
-        self.output_directory = "scraped_data"
+        self.output_directory = "output"  # Change from "scraped_data" to "output"
         self.file_formats = {
             "tax": "jsonl",
             "property": "jsonl", 
@@ -33,9 +37,11 @@ class CollectionConfig:
         
         # GeoJSON file paths
         self.geojson_base_path = "geojsons"  # Local directory on VM
-        self.geojson_file_pattern = "{county}_data_files/{county}_final_ownership.geojson"
+        self.geojson_file_pattern = "{county}/ownership_data_latest.geojson"  # Consistent filename
         
         self.gcs_bucket = "your-scraped-data-bucket"  # Where to upload results
+        
+        self.checkpoint_file = "collection_progress.json"
         
     def get_geojson_path(self, county: str) -> str:
         """Get the GeoJSON file path for a county"""
@@ -45,3 +51,43 @@ class CollectionConfig:
         """Get output file path for a county and data type"""
         extension = self.file_formats.get(data_type, "jsonl")
         return f"{self.output_directory}/{county}_{data_type}_data.{extension}"
+
+    def get_checkpoint_file_path(self) -> str:
+        """Get the checkpoint file path"""
+        return f"{self.output_directory}/{self.checkpoint_file}"
+
+# Simple progress tracker
+class CollectionProgress:
+    """Tracks collection progress for restart capability"""
+    
+    def __init__(self, config: CollectionConfig):
+        self.config = config
+        self.progress_file = config.get_checkpoint_file_path()
+        self.progress = self._load_progress()
+    
+    def _load_progress(self) -> Dict:
+        """Load existing progress"""
+        if os.path.exists(self.progress_file):
+            try:
+                with open(self.progress_file, 'r') as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return {}
+    
+    def get_completed_count(self, county: str) -> int:
+        """Get how many parcels have been completed for a county"""
+        return self.progress.get(county, 0)
+    
+    def update_progress(self, county: str, completed_count: int):
+        """Update progress for a county"""
+        self.progress[county] = completed_count
+        self._save_progress()
+    
+    def _save_progress(self):
+        """Save progress to file"""
+        try:
+            with open(self.progress_file, 'w') as f:
+                json.dump(self.progress, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not save progress: {e}")

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Enhanced PMTiles pipeline entry point with ownership pipeline integration
 """
@@ -221,6 +220,7 @@ def main():
         
     elif args.ownership or args.county or args.counties:
         # Run ownership pipeline
+        print("Came here")
         county_list = None
         if args.county:
             county_list = [args.county]

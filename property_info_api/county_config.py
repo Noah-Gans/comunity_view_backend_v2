@@ -11,7 +11,8 @@ COUNTY_CONFIG = {
             "field": "accountno"
         },
         "clerk_records": {
-            "base_url": "https://gis.tetoncountywy.gov/portal/apps/dashboards/03ef10d8b8634909b6263e9016bcc986#statepin=",
+            # Full ArcGIS query with URL-encoded params; {value} will be replaced with the parcel's PIDN/statepin
+            "url_template": "https://gis.tetoncountywy.gov/server/rest/services/Public_Services/land_records_search/FeatureServer/0/query?f=json&cacheHint=true&resultOffset=0&resultRecordCount=20000&where=statepin%3D%27{value}%27&orderByFields=statepin%20ASC%2Cdatetimeoffiling%20DESC&outFields=%2A&resultType=standard&returnGeometry=false&spatialRel=esriSpatialRelIntersects",
             "field": "pidn"
         }
     },
@@ -85,6 +86,8 @@ def construct_links(county: str, fields: dict) -> dict:
         if "static_url" in link_config:
             # Static URL (like clerk records that don't need field values)
             links[field_name] = link_config["static_url"]
+        elif field_value and "url_template" in link_config and "field" in link_config:
+            links[field_name] = link_config["url_template"].format(value=field_value)
         elif field_value and "base_url" in link_config and "field" in link_config:
             # Dynamic URL that needs field value (only process if field_value exists)
             base_url = link_config["base_url"]

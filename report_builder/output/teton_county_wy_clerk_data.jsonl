@@ -1,3 +1,0 @@
-{"file_type": "teton_county_wy_clerk_data", "created_at": "2025-09-19T14:57:42.399371", "county": "teton_county_wy", "data_type": "clerk", "description": "Mass collected clerk data for teton_county_wy"}
-{"parcel_id": "22-42-17-24-4-45-006", "property_details_key": "R0021527", "clerk_records_key": null, "collection_timestamp": "2025-09-19T14:57:43.106447", "clerk_data": {"message": "Clerk scraping not implemented", "source": "clerk_scraper_teton_county_wy"}}
-{"parcel_id": "22-38-16-08-1-07-028", "property_details_key": "R0022541", "clerk_records_key": null, "collection_timestamp": "2025-09-19T14:57:43.718417", "clerk_data": {"message": "Clerk scraping not implemented", "source": "clerk_scraper_teton_county_wy"}}

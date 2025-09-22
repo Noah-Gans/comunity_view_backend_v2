@@ -6,33 +6,42 @@ from typing import List, Dict, Optional
 from .collection_config import CollectionConfig
 
 class ParcelRegistry:
-    """Manages parcel IDs from GeoJSON files"""
+    """Manages parcel IDs from GeoJSON files with position-based restart"""
     
-    def __init__(self):
+    def __init__(self, progress_manager=None):
         self.config = CollectionConfig()
         self._parcel_cache = {}
+        self.progress_manager = progress_manager
         
-    def get_parcels_for_county(self, county: str, max_parcels: Optional[int] = None) -> List[Dict]:
-        """Get all parcels for a county from GeoJSON file"""
+    def get_parcels_for_county(self, county: str, max_parcels: Optional[int] = None, 
+                          progress_manager=None) -> List[Dict]:
+        """Get parcels for a county, optionally skipping already processed ones"""
+        
         if county in self._parcel_cache:
             parcels = self._parcel_cache[county]
         else:
             parcels = self._load_parcels_from_geojson(county)
             self._parcel_cache[county] = parcels
             
-        # Filter out parcels without required keys
+        # Filter valid parcels
         valid_parcels = []
         for parcel in parcels:
-            # Skip if no property_details_key and no tax_details_key
             if not parcel.get("property_details_key") and not parcel.get("tax_details_key"):
                 continue
-                
             valid_parcels.append(parcel)
         
-        # Limit for testing if requested
+        # Skip already processed parcels if progress manager is available
+        if progress_manager:
+            completed_count = progress_manager.get_completed_count(county)
+            if completed_count > 0:
+                valid_parcels = valid_parcels[completed_count:]
+                print(f"Resuming {county} from parcel {completed_count + 1}")
+        
+        # Limit for testing
         if max_parcels:
             valid_parcels = valid_parcels[:max_parcels]
             
+        print(f"County {county}: {len(valid_parcels)} parcels to process")
         return valid_parcels
     
     def _load_parcels_from_geojson(self, county: str) -> List[Dict]:

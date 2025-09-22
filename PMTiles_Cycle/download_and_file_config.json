@@ -92,7 +92,7 @@
       "parcel_url": "https://services1.arcgis.com/mAJPyaZkZWzjRIy7/arcgis/rest/services/Public_Download_Parcels/FeatureServer/replicafilescache/Public_Download_Parcels_1128884694680228272.geojson",
       "needs_merging": true,
       "standardization_mappings": {
-        "parcel_id": ["PID"],
+        "parcel_id": ["REALWARE"],
         "owner_name": ["OWNERSHIP"],
         "physical_address": ["Address"],
         "mailing_address": ["MAIL_ADD"],
@@ -149,7 +149,7 @@
           "field": "tax_id"
         },
         "clerk_records": {
-          "static_url": "https://maps.terragis.net/sublette/clerk/query/list.php?pidn=",
+          "base_url": "https://maps.terragis.net/sublette/clerk/query/list.php?pidn=",
           "field": "pidn"
         }
       }

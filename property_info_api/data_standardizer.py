@@ -313,7 +313,17 @@ class DataStandardizer:
                 "timestamp": datetime.now().isoformat()
             }
         
-        # Create data sources dict for config-driven extraction
+        # For Teton County, return the raw API response instead of standardizing
+        if self.county == "teton_county_wy":
+            return {
+                "status": "success",
+                "message": "Clerk data retrieved successfully",
+                "data": raw_clerk_data,  # Return the full raw data
+                "source": raw_clerk_data.get("source", f"clerk_scraper_{self.county}"),
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # For other counties, use the existing standardization
         data_sources = {
             "tax_data": self.raw_data.get("tax_data") if self.raw_data else None,
             "property_data": self.raw_data.get("property_data") if self.raw_data else None,

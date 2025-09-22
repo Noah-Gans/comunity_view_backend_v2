@@ -76,9 +76,6 @@ class ProgressTracker:
         
     def print_final_summary(self):
         """Print final collection summary"""
-        if self.start_time is None:
-            return
-            
         total_time = time.time() - self.start_time
         total_processed = self.completed_parcels + self.failed_parcels
         
@@ -86,7 +83,15 @@ class ProgressTracker:
         print(f"Total Parcels: {self.total_parcels}")
         print(f"Completed Successfully: {self.completed_parcels}")
         print(f"Failed: {self.failed_parcels}")
-        print(f"Success Rate: {(self.completed_parcels/total_processed)*100:.1f}%")
-        print(f"Total Time: {total_time/3600:.1f} hours")
-        print(f"Average Rate: {(total_processed/(total_time/60)):.1f} parcels/minute")
+        
+        # Fix division by zero
+        if total_processed > 0:
+            print(f"Success Rate: {(self.completed_parcels/total_processed)*100:.1f}%")
+            print(f"Total Time: {total_time/3600:.1f} hours")
+            print(f"Average Rate: {(total_processed/(total_time/60)):.1f} parcels/minute")
+        else:
+            print(f"Success Rate: N/A (no parcels processed)")
+            print(f"Total Time: {total_time/3600:.1f} hours")
+            print(f"Average Rate: 0 parcels/minute")
+        
         print(f"============================\n")
