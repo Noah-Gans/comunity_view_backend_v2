@@ -1,9 +1,9 @@
-"""API wrapper to call existing property_info_api scrapers"""
+"""API wrapper to call existing property_info_api scrapers with data type filtering"""
 
 import sys
 import os
 import asyncio
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # Add property_info_api to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'property_info_api'))
@@ -13,28 +13,36 @@ from overrides.tax.tyler_technologies_tax import scrape_tax
 from overrides.property_details.greenwood_details_scrape import scrape_property_details
 from general_parsers.property_details import GeneralPropertyDetailsScraper, scrape_property_details as general_scrape_property_details
 from general_parsers.tax import scrape_tax as general_scrape_tax
-from general_parsers.clerk import scrape_clerk  # Add this import
+from general_parsers.clerk import scrape_clerk
 
 class APIWrapper:
-    """Wrapper around existing property_info_api scrapers"""
+    """Wrapper around existing property_info_api scrapers with data type filtering and Lincoln County tax URL fix"""
     
     def __init__(self):
         pass
         
     def get_scraping_urls(self, county: str, parcel_data: Dict) -> Dict[str, Optional[str]]:
-        """Get URLs for scraping using existing construct_links function"""
+        """Get URLs for scraping using existing construct_links function with Lincoln County tax URL fix"""
         
         # Build fields dict from parcel data
         fields = {}
         
-        if parcel_data.get("tax_details_key"):
-            fields["tax_field"] = parcel_data["tax_details_key"]
+        # SPECIAL HANDLING: Add "00" prefix for Lincoln County tax IDs
+        if county == "lincoln_county_wy" and parcel_data.get("tax_details_key"):
+            # Add "00" prefix to the tax ID for Lincoln County
+            original_tax_id = parcel_data["tax_details_key"]
+            fields["tax_field"] = f"00{original_tax_id}"
+            print(f"Report Builder: Added 00 prefix for Lincoln County tax ID: {original_tax_id} -> 00{original_tax_id}")
+        else:
+            # Use original tax ID for other counties
+            if parcel_data.get("tax_details_key"):
+                fields["tax_field"] = parcel_data["tax_details_key"]
             
         if parcel_data.get("property_details_key"):
             fields["property_details_field"] = parcel_data["property_details_key"]
             
         # Always include clerk_field, even if null or missing
-        fields["clerk_field"] = parcel_data.get("clerk_records_key")  # This will be None if missing
+        fields["clerk_field"] = parcel_data.get("clerk_records_key")
             
         # Use existing construct_links function
         try:
@@ -94,8 +102,12 @@ class APIWrapper:
             print(f"Error scraping clerk data for {county} at {url}: {e}")
             return {"error": str(e), "source": f"clerk_scraper_{county}"}
     
-    async def collect_parcel_data(self, county: str, parcel_data: Dict) -> Dict:
-        """Collect all data types for a single parcel"""
+    async def collect_parcel_data(self, county: str, parcel_data: Dict, data_types: List[str] = None) -> Dict:
+        """Collect specified data types for a single parcel"""
+        
+        # Set default data types if not specified
+        if data_types is None:
+            data_types = ["tax", "property", "clerk"]
         
         # Get scraping URLs
         urls = self.get_scraping_urls(county, parcel_data)
@@ -113,24 +125,24 @@ class APIWrapper:
             "errors": []
         }
         
-        # Scrape tax data
-        if urls.get("tax_field"):
+        # Scrape tax data (only if requested)
+        if "tax" in data_types and urls.get("tax_field"):
             tax_data = await self.scrape_tax_data(county, urls["tax_field"])
             if tax_data:
                 result["scraped_data"]["tax_data"] = tax_data
                 if tax_data.get("error"):
                     result["errors"].append(f"Tax scraping: {tax_data['error']}")
         
-        # Scrape property data
-        if urls.get("property_details_field"):
+        # Scrape property data (only if requested)
+        if "property" in data_types and urls.get("property_details_field"):
             property_data = await self.scrape_property_data(county, urls["property_details_field"])
             if property_data:
                 result["scraped_data"]["property_data"] = property_data
                 if property_data.get("error"):
                     result["errors"].append(f"Property scraping: {property_data['error']}")
         
-        # Scrape clerk data (placeholder)
-        if urls.get("clerk_field"):
+        # Scrape clerk data (only if requested)
+        if "clerk" in data_types and urls.get("clerk_field"):
             clerk_data = await self.scrape_clerk_data(county, urls["clerk_field"])
             if clerk_data:
                 result["scraped_data"]["clerk_data"] = clerk_data

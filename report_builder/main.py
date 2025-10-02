@@ -25,20 +25,24 @@ from download_geojsons import download_geojsons_from_gcs
 class ReportBuilderMain:
     def __init__(self):
         self.config = CollectionConfig()
-        self.progress_manager = CollectionProgress(self.config)  # Add this line
-        self.parcel_registry = ParcelRegistry(self.progress_manager)  # Pass progress manager
+        self.progress_manager = CollectionProgress(self.config)
+        self.parcel_registry = ParcelRegistry(self.progress_manager)
         self.batch_manager = BatchManager()
         self.file_manager = FileManager()
         self.progress_tracker = ProgressTracker()
         self.logger = CollectionLogger()
         
-    async def run_collection(self, counties=None, max_parcels_per_county=None, resume=False):
+    async def run_collection(self, counties=None, max_parcels_per_county=None, resume=False, data_types=None):
         """Run the complete collection process"""
-        self.logger.info("Starting mass property data collection")
+        self.logger.info(f"Starting mass property data collection for data types: {data_types}")
         
         # Get counties to process (skip teton_county_id)
         if counties is None:
             counties = self.config.active_counties
+        
+        # Set default data types if not specified
+        if data_types is None:
+            data_types = ["tax", "property", "clerk"]
         
         total_parcels = 0
         for county in counties:
@@ -51,11 +55,11 @@ class ReportBuilderMain:
         
         self.progress_tracker.initialize(total_parcels)
         
-        # Process all counties in parallel, each with their own 15-request semaphore
+        # Process all counties in parallel, each with their own semaphore
         county_tasks = []
         for county in counties:
             self.logger.info(f"Starting collection for {county}")
-            task = self.process_county(county, max_parcels_per_county)
+            task = self.process_county(county, max_parcels_per_county, data_types)
             county_tasks.append(task)
         
         # Run all counties at the same time
@@ -65,7 +69,7 @@ class ReportBuilderMain:
         self.logger.info("Collection complete!")
         self.progress_tracker.print_final_summary()
     
-    async def process_county(self, county: str, max_parcels_per_county=None):
+    async def process_county(self, county: str, max_parcels_per_county=None, data_types=None):
         """Process all parcels for a single county"""
         
         # Get parcels for this county
@@ -83,7 +87,8 @@ class ReportBuilderMain:
         # Process parcels in batches
         await self.batch_manager.process_county_parcels(
             county, parcels, self.file_manager, self.progress_tracker, self.logger,
-            progress_manager=self.progress_manager  # Add this line
+            progress_manager=self.progress_manager,
+            data_types=data_types
         )
 
 def get_site_group(county: str, data_type: str, url: str) -> str:
@@ -123,6 +128,10 @@ if __name__ == "__main__":
     parser.add_argument("--resume", action="store_true", help="Resume from last checkpoint")
     parser.add_argument("--download-geojsons", action="store_true", help="Download latest GeoJSONs from GCS first")
     
+    # NEW: Add data type selection
+    parser.add_argument("--data-types", nargs="+", choices=["tax", "property", "clerk"], 
+                       help="Data types to collect (default: all)", default=["tax", "property", "clerk"])
+    
     args = parser.parse_args()
     
     # Download GeoJSONs if requested
@@ -131,4 +140,4 @@ if __name__ == "__main__":
         download_latest_geojsons()
     
     main = ReportBuilderMain()
-    asyncio.run(main.run_collection(args.counties, args.max_parcels, args.resume))
+    asyncio.run(main.run_collection(args.counties, args.max_parcels, args.resume, args.data_types))

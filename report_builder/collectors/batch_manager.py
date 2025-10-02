@@ -1,10 +1,9 @@
-"""Batch manager for processing parcels with rate limiting"""
+"""Batch manager for processing parcels with rate limiting and data type filtering"""
 
 import asyncio
 import time
 import random
-from typing import List, Dict
-from datetime import datetime
+from typing import List, Dict, Optional
 
 import sys
 import os
@@ -15,19 +14,25 @@ from scheduling.rate_limiter import RateLimiter
 from config.collection_config import CollectionConfig
 
 class BatchManager:
-    """Manages batch processing of parcels with rate limiting"""
+    """Manages batch processing of parcels with rate limiting and data type filtering"""
     
     def __init__(self):
         self.config = CollectionConfig()
         self.api_wrapper = APIWrapper()
         self.rate_limiter = RateLimiter(
             requests_per_second=self.config.requests_per_second
-        )  # Only pass requests_per_second
+        )
         
     async def process_county_parcels(self, county: str, parcels: List[Dict], 
                                 file_manager, progress_tracker, logger,
-                                progress_manager=None):
-        """Process all parcels for a county with progress tracking"""
+                                progress_manager=None, data_types: List[str] = None):
+        """Process all parcels for a county with progress tracking and data type filtering"""
+        
+        # Set default data types if not specified
+        if data_types is None:
+            data_types = ["tax", "property", "clerk"]
+        
+        logger.info(f"Processing {county} with data types: {data_types}")
         
         # Create semaphore for this county
         semaphore = asyncio.Semaphore(self.config.max_concurrent_requests)
@@ -36,16 +41,13 @@ class BatchManager:
         tasks = []
         for i, parcel in enumerate(parcels):
             task = self._process_single_parcel_with_semaphore(
-                semaphore, county, parcel, file_manager, progress_tracker, logger, progress_manager
+                semaphore, county, parcel, file_manager, progress_tracker, logger, 
+                progress_manager, data_types
             )
             tasks.append(task)
         
         # Process all parcels
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # Remove this line - progress is now updated per parcel
-        # if progress_manager:
-        #     progress_manager.update_progress(county, len(parcels))
         
         # Count successes and failures
         successes = sum(1 for r in results if isinstance(r, dict) and not r.get("error"))
@@ -57,17 +59,18 @@ class BatchManager:
     
     async def _process_single_parcel_with_semaphore(self, semaphore, county: str, 
                                                    parcel: Dict, file_manager, 
-                                                   progress_tracker, logger, progress_manager=None):
-        """Process a single parcel with semaphore for concurrency control"""
+                                                   progress_tracker, logger, 
+                                                   progress_manager=None, data_types: List[str] = None):
+        """Process a single parcel with semaphore for concurrency control and data type filtering"""
         
         async with semaphore:
             # Rate limiting delay
             await self.rate_limiter.wait()
             
             try:
-                # Collect data for this parcel
-                result = await self.api_wrapper.collect_parcel_data(county, parcel)
-                result["collection_timestamp"] = datetime.now().isoformat()
+                # Collect data for this parcel (only requested data types)
+                result = await self.api_wrapper.collect_parcel_data(county, parcel, data_types)
+                result["collection_timestamp"] = time.time()
                 
                 # Write to appropriate files
                 await file_manager.write_parcel_data(county, result)
