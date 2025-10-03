@@ -28,3 +28,5 @@ Thumbs.db
 
 # Backup files
 *.backup.*
+property_data.db
+*.db
