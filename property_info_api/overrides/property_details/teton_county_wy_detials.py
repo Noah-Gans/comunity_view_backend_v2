@@ -5,6 +5,10 @@ import time
 import re
 from datetime import datetime
 import copy
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 def scrape_tax(url: str) -> dict:
     """Override Teton County tax scraper."""
@@ -42,11 +46,14 @@ class TetonPropertyDetailsScraper:
         }
         
         try:
+            logger.debug(f"(Teton County WY Property) Calling ArcGIS API layer {layer} for account: {self.accountno}")
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            logger.debug(f"(Teton County WY Property) Retrieved {len(data.get('features', []))} features from layer {layer}")
+            return data
         except Exception as e:
-            print(f"[TETON] Error calling layer {layer}: {e}")
+            logger.warning(f"(Teton County WY Property) Error calling layer {layer}: {e}")
             return {"features": []}
     
     def write_api_data_to_file(self, data: dict, layer: int):
@@ -56,7 +63,7 @@ class TetonPropertyDetailsScraper:
     
     def scrape(self) -> dict:
         """Main scraping method for Teton County."""
-        print(f"[TETON] Scraping account: {self.accountno}")
+        logger.info(f"(Teton County WY Property) Starting property details scrape for account: {self.accountno}")
         
         # Call all three layers
         layer_0_data = self.call_arcgis_api(0)  # General parcel info
@@ -64,20 +71,17 @@ class TetonPropertyDetailsScraper:
         layer_3_data = self.call_arcgis_api(3)  # Land details (acreage)
         
         # Write data to files for debugging
-        self.write_api_data_to_file(layer_0_data, 0)
-        self.write_api_data_to_file(layer_2_data, 2)
-        self.write_api_data_to_file(layer_3_data, 3)
+        
         
         # Map to canonical structure
         result = self.map_to_canonical(layer_0_data, layer_2_data, layer_3_data)
         
-        # Final result file writing disabled for mass collection
-        # print(f"[TETON] Final result processing complete")
-        
+        logger.info(f"(Teton County WY Property) Completed property details scrape for account: {self.accountno}")
         return result
     
     def map_to_canonical(self, layer_0_data: dict, layer_2_data: dict, layer_3_data: dict) -> dict:
         """Map ArcGIS data to our canonical structure."""
+        logger.debug("(Teton County WY Property) Mapping ArcGIS data to canonical structure")
         # Load canonical structure
         from pathlib import Path
         structure_path = Path(__file__).parent.parent / 'structure.json'
@@ -90,7 +94,7 @@ class TetonPropertyDetailsScraper:
         # Process Layer 0 (General parcel info)
         if layer_0_data.get('features'):
             parcel_data = layer_0_data['features'][0]['attributes']
-            print(f"[TETON] Processing parcel data: {parcel_data}")
+            logger.debug(f"(Teton County WY Property) Processing parcel data: {parcel_data}")
             
             # Map basic fields
             result['county_parcel_id'] = parcel_data.get('pidn', '')
@@ -119,11 +123,11 @@ class TetonPropertyDetailsScraper:
         # Process Layer 2 (Property details/buildings)
         if layer_2_data.get('features'):
             buildings_data = layer_2_data['features']
-            print(f"[TETON] Processing {len(buildings_data)} buildings")
+            logger.debug(f"(Teton County WY Property) Processing {len(buildings_data)} buildings")
             
             for building in buildings_data:
                 building_attrs = building['attributes']
-                print(f"[TETON] Processing building: {building_attrs}")
+                logger.debug(f"(Teton County WY Property) Processing building: {building_attrs}")
                 
                 # Create flat building structure with all attributes
                 flat_building = {
@@ -204,7 +208,7 @@ class TetonPropertyDetailsScraper:
         # Process Layer 3 (Land details/acreage breakdown)
         if layer_3_data.get('features'):
             land_data = layer_3_data['features'][0]['attributes']
-            print(f"[TETON] Processing land data: {land_data}")
+            logger.debug(f"(Teton County WY Property) Processing land data: {land_data}")
             
             land_type = land_data.get('landtype', '').lower()
             land_acres = land_data.get('landacres', 0)
@@ -221,6 +225,7 @@ class TetonPropertyDetailsScraper:
             else:
                 result['acreage_breakdown']['other'] = land_acres
         
+        logger.debug(f"(Teton County WY Property) Mapped to canonical structure with {len(result['developments'])} developments")
         return result
     
     def format_mailing_address(self, parcel_data: dict) -> str:
@@ -276,5 +281,8 @@ class TetonPropertyDetailsScraper:
 
 def scrape_property_details(url: str) -> dict:
     """Main entry point for Teton County property details scraping."""
+    logger.info(f"(Teton County WY Property) Starting Teton County WY property details scrape")
     scraper = TetonPropertyDetailsScraper(url)
-    return scraper.scrape() 
+    result = scraper.scrape()
+    logger.info(f"(Teton County WY Property) Completed Teton County WY property details scrape")
+    return result 

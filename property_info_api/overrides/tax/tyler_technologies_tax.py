@@ -5,11 +5,15 @@ from typing import Dict, List
 import time
 import os
 import re
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 def scrape_tax(url: str, county: str = None) -> Dict:
     """Scrape tax information from Tyler Technologies systems including history."""
     try:
-        print(f"[TYLER_TAX] Scraping {county} URL: {url}")
+        logger.info(f"(Tyler Technologies Tax) Starting Tyler Technologies tax scrape for {county}")
         start_time = time.time()
         
         # Create a session to maintain cookies
@@ -26,19 +30,19 @@ def scrape_tax(url: str, county: str = None) -> Dict:
         }
         
         # Step 1: Visit the main tax detail page to establish session
-        print(f"[TYLER_TAX] Step 1: Visiting main tax page to establish session")
+        logger.debug(f"(Tyler Technologies Tax) Step 1: Visiting main tax page to establish session")
         response1 = session.get(url, timeout=15, headers=headers)
         response1.raise_for_status()
         
         fetch_time = time.time() - start_time
-        print(f"[TYLER_TAX] Fetch time: {fetch_time:.2f}s")
+        logger.debug(f"(Tyler Technologies Tax) Fetch time: {fetch_time:.2f}s")
         
         soup1 = BeautifulSoup(response1.text, 'html.parser')
         
         # Step 2: Navigate to history page using the same session
         base_url = url.split('/detail.aspx')[0]  # Extract base URL
         history_url = f"{base_url}/history.aspx"
-        print(f"[TYLER_TAX] Step 2: Visiting history page: {history_url}")
+        logger.debug(f"(Tyler Technologies Tax) Step 2: Visiting history page: {history_url}")
         
         response2 = session.get(history_url, timeout=15, headers=headers)
         response2.raise_for_status()
@@ -46,7 +50,7 @@ def scrape_tax(url: str, county: str = None) -> Dict:
         soup2 = BeautifulSoup(response2.text, 'html.parser')
         
         # Debug files disabled for mass collection
-        # print(f"[TYLER_TAX] Debug files disabled for mass collection")
+        # logger.debug(f"(Tyler Technologies Tax) Debug files disabled for mass collection")
         
         # Extract current tax data from detail page
         current_data = extract_tyler_tax_data(soup1, county)
@@ -58,18 +62,18 @@ def scrape_tax(url: str, county: str = None) -> Dict:
         standardized_data = create_standardized_tax_data(current_data, historical_data, county)
         
         total_time = time.time() - start_time
-        print(f"[TYLER_TAX] Total time: {total_time:.2f}s")
+        logger.info(f"(Tyler Technologies Tax) Tyler Technologies tax scrape completed in {total_time:.2f}s for {county}")
         
         return standardized_data
         
     except Exception as e:
-        print(f"[TYLER_TAX] Error: {e}")
+        logger.error(f"(Tyler Technologies Tax) Error: {e}")
         return {"error": str(e), "source": f"tyler_technologies_tax_{county}"}
 
 def extract_tyler_tax_data(soup: BeautifulSoup, county: str) -> Dict:
     """Extract tax data from Tyler Technologies page structure."""
     try:
-        print(f"[TYLER_TAX] Extracting data for {county}")
+        logger.debug(f"(Tyler Technologies Tax) Extracting data for {county}")
         
         # Tyler Technologies common patterns
         tax_data = {
@@ -93,81 +97,81 @@ def extract_tyler_tax_data(soup: BeautifulSoup, county: str) -> Dict:
             year_match = re.search(r'20\d{2}', year_elements[0].get_text())
             if year_match:
                 tax_data["tax_year"] = year_match.group(0)
-                print(f"[TYLER_TAX] Found tax year: {tax_data['tax_year']}")
+                logger.debug(f"(Tyler Technologies Tax) Found tax year: {tax_data['tax_year']}")
         
         # Extract Tax ID
-        print(f"[TYLER_TAX] Searching for Tax ID element...")
+        logger.debug(f"(Tyler Technologies Tax) Searching for Tax ID element...")
         tax_id_elem = soup.find('span', id=lambda x: x and 'lblTaxID' in x)
         if tax_id_elem:
             tax_id_text = tax_id_elem.get_text(strip=True)
             tax_id_id = tax_id_elem.get('id', 'no-id')
-            print(f"[TYLER_TAX] Found tax ID element with ID: {tax_id_id}")
-            print(f"[TYLER_TAX] Tax ID element text: '{tax_id_text}'")
+            logger.debug(f"(Tyler Technologies Tax) Found tax ID element with ID: {tax_id_id}")
+            logger.debug(f"(Tyler Technologies Tax) Tax ID element text: '{tax_id_text}'")
             tax_data["tax_id"] = tax_id_text
-            print(f"[TYLER_TAX] Found tax ID: {tax_data['tax_id']}")
+            logger.debug(f"(Tyler Technologies Tax) Found tax ID: {tax_data['tax_id']}")
         else:
-            print(f"[TYLER_TAX] No tax ID element found")
+            logger.debug(f"(Tyler Technologies Tax) No tax ID element found")
         
         # Extract Levy District
-        print(f"[TYLER_TAX] Searching for Levy District element...")
+        logger.debug(f"(Tyler Technologies Tax) Searching for Levy District element...")
         levy_elem = soup.find('span', id=lambda x: x and 'lblLevy' in x and 'District' not in x)
         if levy_elem:
             levy_text = levy_elem.get_text(strip=True)
             levy_id = levy_elem.get('id', 'no-id')
-            print(f"[TYLER_TAX] Found levy element with ID: {levy_id}")
-            print(f"[TYLER_TAX] Levy element text: '{levy_text}'")
+            logger.debug(f"(Tyler Technologies Tax) Found levy element with ID: {levy_id}")
+            logger.debug(f"(Tyler Technologies Tax) Levy element text: '{levy_text}'")
             tax_data["levy_district"] = levy_text
-            print(f"[TYLER_TAX] Found levy district: {tax_data['levy_district']}")
+            logger.debug(f"(Tyler Technologies Tax) Found levy district: {tax_data['levy_district']}")
         else:
-            print(f"[TYLER_TAX] No levy element found")
+            logger.debug(f"(Tyler Technologies Tax) No levy element found")
         
         # Extract market value (assessed value)
         market_value_elem = soup.find('span', id=lambda x: x and 'lblValueMarket' in x)
         if market_value_elem:
             tax_data["assessed_value"] = market_value_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found assessed value: {tax_data['assessed_value']}")
+            logger.debug(f"(Tyler Technologies Tax) Found assessed value: {tax_data['assessed_value']}")
         
         # Extract taxable value
         taxable_value_elem = soup.find('span', id=lambda x: x and 'lblValueTaxable' in x)
         if taxable_value_elem:
             tax_data["taxable_value"] = taxable_value_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found taxable value: {tax_data['taxable_value']}")
+            logger.debug(f"(Tyler Technologies Tax) Found taxable value: {tax_data['taxable_value']}")
         
         # Extract net taxable
         net_taxable_elem = soup.find('span', id=lambda x: x and 'lblNetTaxable' in x)
         if net_taxable_elem:
             tax_data["net_taxable"] = net_taxable_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found net taxable: {tax_data['net_taxable']}")
+            logger.debug(f"(Tyler Technologies Tax) Found net taxable: {tax_data['net_taxable']}")
         
         # Extract first half tax amount
         first_half_elem = soup.find('span', id=lambda x: x and 'lblTaxFirstHalf' in x)
         if first_half_elem:
             tax_data["first_half"] = first_half_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found first half: {tax_data['first_half']}")
+            logger.debug(f"(Tyler Technologies Tax) Found first half: {tax_data['first_half']}")
         
         # Extract second half tax amount
         second_half_elem = soup.find('span', id=lambda x: x and 'lblTaxSecondHalf' in x)
         if second_half_elem:
             tax_data["second_half"] = second_half_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found second half: {tax_data['second_half']}")
+            logger.debug(f"(Tyler Technologies Tax) Found second half: {tax_data['second_half']}")
         
         # Extract first half due date
         first_due_elem = soup.find('span', id=lambda x: x and 'lblFirstDueDate' in x)
         if first_due_elem:
             tax_data["first_half_due_date"] = first_due_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found first half due date: {tax_data['first_half_due_date']}")
+            logger.debug(f"(Tyler Technologies Tax) Found first half due date: {tax_data['first_half_due_date']}")
         
         # Extract second half due date
         second_due_elem = soup.find('span', id=lambda x: x and 'lblSecondDueDate' in x)
         if second_due_elem:
             tax_data["second_half_due_date"] = second_due_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found second half due date: {tax_data['second_half_due_date']}")
+            logger.debug(f"(Tyler Technologies Tax) Found second half due date: {tax_data['second_half_due_date']}")
         
         # Extract total tax amount
         total_tax_elem = soup.find('span', id=lambda x: x and 'lblTaxTotal' in x)
         if total_tax_elem:
             tax_data["tax_amount"] = total_tax_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found tax amount: {tax_data['tax_amount']}")
+            logger.debug(f"(Tyler Technologies Tax) Found tax amount: {tax_data['tax_amount']}")
         
         # Extract due dates (get the latest one) - fallback for older systems
         due_date_elems = soup.find_all('span', id=lambda x: x and 'DueDate' in x)
@@ -175,42 +179,42 @@ def extract_tyler_tax_data(soup: BeautifulSoup, county: str) -> Dict:
             # Get the second due date (usually the later one)
             if len(due_date_elems) >= 2:
                 tax_data["due_date"] = due_date_elems[1].get_text(strip=True)
-                print(f"[TYLER_TAX] Found due date: {tax_data['due_date']}")
+                logger.debug(f"(Tyler Technologies Tax) Found due date: {tax_data['due_date']}")
             elif len(due_date_elems) == 1:
                 tax_data["due_date"] = due_date_elems[0].get_text(strip=True)
-                print(f"[TYLER_TAX] Found due date: {tax_data['due_date']}")
+                logger.debug(f"(Tyler Technologies Tax) Found due date: {tax_data['due_date']}")
         
         # Extract payment information
-        print(f"[TYLER_TAX] Searching for payment elements...")
+        logger.debug(f"(Tyler Technologies Tax) Searching for payment elements...")
         
         # Extract first half payment
         first_half_payment_elem = soup.find('span', id=lambda x: x and 'lblPayFirstHalf' in x)
         if first_half_payment_elem:
             tax_data["first_half_payment"] = first_half_payment_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found first half payment: {tax_data['first_half_payment']}")
+            logger.debug(f"(Tyler Technologies Tax) Found first half payment: {tax_data['first_half_payment']}")
         else:
-            print(f"[TYLER_TAX] No first half payment element found")
+            logger.debug(f"(Tyler Technologies Tax) No first half payment element found")
         
         # Extract second half payment
         second_half_payment_elem = soup.find('span', id=lambda x: x and 'lblPaySecondHalf' in x)
         if second_half_payment_elem:
             tax_data["second_half_payment"] = second_half_payment_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found second half payment: {tax_data['second_half_payment']}")
+            logger.debug(f"(Tyler Technologies Tax) Found second half payment: {tax_data['second_half_payment']}")
         else:
-            print(f"[TYLER_TAX] No second half payment element found")
+            logger.debug(f"(Tyler Technologies Tax) No second half payment element found")
         
         # Extract total payment
         total_payment_elem = soup.find('span', id=lambda x: x and 'lblPayTotal' in x)
         if total_payment_elem:
             tax_data["total_payment"] = total_payment_elem.get_text(strip=True)
-            print(f"[TYLER_TAX] Found total payment: {tax_data['total_payment']}")
+            logger.debug(f"(Tyler Technologies Tax) Found total payment: {tax_data['total_payment']}")
         else:
-            print(f"[TYLER_TAX] No total payment element found")
+            logger.debug(f"(Tyler Technologies Tax) No total payment element found")
         
         return tax_data
         
     except Exception as e:
-        print(f"[TYLER_TAX] Extraction error: {e}")
+        logger.error(f"(Tyler Technologies Tax) Extraction error: {e}")
         return {
             "error": f"Data extraction failed: {str(e)}",
             "source": f"tyler_technologies_tax_{county}"
@@ -219,7 +223,7 @@ def extract_tyler_tax_data(soup: BeautifulSoup, county: str) -> Dict:
 def extract_historical_data(soup: BeautifulSoup, county: str) -> Dict:
     """Extract historical tax data from the history page."""
     try:
-        print(f"[TYLER_TAX] Extracting historical data for {county}")
+        logger.debug(f"(Tyler Technologies Tax) Extracting historical data for {county}")
         
         historical_data = {
             "years": [],
@@ -230,10 +234,10 @@ def extract_historical_data(soup: BeautifulSoup, county: str) -> Dict:
         # Find the specific history DataGrid table
         history_table = soup.find('table', {'id': '_ctl0_ContentPlaceHolder1_dgHistory'})
         if not history_table:
-            print(f"[TYLER_TAX] History DataGrid table not found")
+            logger.debug(f"(Tyler Technologies Tax) History DataGrid table not found")
             return historical_data
         
-        print(f"[TYLER_TAX] Found history DataGrid table")
+        logger.debug(f"(Tyler Technologies Tax) Found history DataGrid table")
         
         # Extract rows from the DataGrid (skip header row)
         rows = history_table.find_all('tr')[1:]  # Skip header row
@@ -279,8 +283,8 @@ def extract_historical_data(soup: BeautifulSoup, county: str) -> Dict:
                     second_half_paid_amount = second_half_paid_amount[1:].replace(",", "")
                 
                 # Debug output to see what we're getting
-                print(f"[TYLER_TAX] Year {tax_year}: Payment dates raw: '{payment_dates_text}' -> Split: {payment_dates_split}")
-                print(f"[TYLER_TAX] Year {tax_year}: Paid amounts raw: '{paid_amounts_text}' -> Split: {paid_amounts_split}")
+                logger.debug(f"(Tyler Technologies Tax) Year {tax_year}: Payment dates raw: '{payment_dates_text}' -> Split: {payment_dates_split}")
+                logger.debug(f"(Tyler Technologies Tax) Year {tax_year}: Paid amounts raw: '{paid_amounts_text}' -> Split: {paid_amounts_split}")
                 
                 tax_record = {
                     "year": tax_year,
@@ -298,13 +302,13 @@ def extract_historical_data(soup: BeautifulSoup, county: str) -> Dict:
                 
                 if tax_year not in historical_data["years"]:
                     historical_data["years"].append(tax_year)
-                    print(f"[TYLER_TAX] Found historical year: {tax_year} - ${bill_amount}")
+                    logger.debug(f"(Tyler Technologies Tax) Found historical year: {tax_year} - ${bill_amount}")
         
-        print(f"[TYLER_TAX] Extracted {len(historical_data['historical_taxes'])} historical records")
+        logger.debug(f"(Tyler Technologies Tax) Extracted {len(historical_data['historical_taxes'])} historical records")
         return historical_data
         
     except Exception as e:
-        print(f"[TYLER_TAX] Historical extraction error: {e}")
+        logger.error(f"(Tyler Technologies Tax) Historical extraction error: {e}")
         return {"error": f"Historical data extraction failed: {str(e)}"}
 
 def create_standardized_tax_data(current_data: Dict, historical_data: Dict, county: str) -> Dict:
@@ -374,12 +378,12 @@ def create_standardized_tax_data(current_data: Dict, historical_data: Dict, coun
             "scraped": True
         }
         
-        print(f"[TYLER_TAX] Standardized data: {standardized}")
+        logger.debug(f"(Tyler Technologies Tax) Standardized data created successfully")
         
         return standardized
         
     except Exception as e:
-        print(f"[TYLER_TAX] Standardization error: {e}")
+        logger.error(f"(Tyler Technologies Tax) Standardization error: {e}")
         return {
             "error": f"Data standardization failed: {str(e)}",
             "source": f"tyler_technologies_tax_{county}"

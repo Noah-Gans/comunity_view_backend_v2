@@ -8,6 +8,10 @@ from datetime import datetime
 import json
 import copy
 from pathlib import Path
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 class GeneralPropertyDetailsScraper:
     """
@@ -46,13 +50,16 @@ class GeneralPropertyDetailsScraper:
 
     def fetch(self):
         """Fetch the page and parse with BeautifulSoup. Writes raw HTML to a file for debugging."""
+        logger.info("(General Property Details) Starting property details scrape")
         resp = requests.get(self.url, timeout=10)
         resp.raise_for_status()
         self.write_html_to_file(resp.text)
         self.soup = BeautifulSoup(resp.text, 'html.parser')
+        logger.info("(General Property Details) Fetched and parsed HTML")
 
     def extract_all_tables_and_lists(self) -> dict:
         """Extracts all tables and definition lists as thoroughly as possible, including nested tables, without mixing parent and child rows."""
+        logger.debug("(General Property Details) Extracting tables and lists")
         results = {}
         if not self.soup:
             return results
@@ -114,54 +121,54 @@ class GeneralPropertyDetailsScraper:
         
         # Extract tables (existing logic) with better debugging
         tables = self.soup.find_all('table')
-        print(f"Found {len(tables)} tables in the HTML")
+        logger.debug(f"(General Property Details) Found {len(tables)} tables in the HTML")
         table_idx = 0
         for table in tables:
             table_idx += 1
-            print(f"Processing table {table_idx}")
+            logger.debug(f"(General Property Details) Processing table {table_idx}")
             rows = []
             headers = []
             
             # Get all rows in this table
             table_rows = table.find_all('tr', recursive=False)
-            print(f"  Table {table_idx} has {len(table_rows)} rows")
+            logger.debug(f"(General Property Details) Table {table_idx} has {len(table_rows)} rows")
             
             for i, row in enumerate(table_rows):
                 cells = row.find_all(['td', 'th'], recursive=False)
-                print(f"    Row {i} has {len(cells)} cells")
+                logger.debug(f"(General Property Details) Row {i} has {len(cells)} cells")
                 
                 # Header row: more than 2 cells, or first row, or has th elements
                 if (i == 0 and len(cells) > 2) or (row.get('class') and 'toprow' in row.get('class', [])) or any(cell.name == 'th' for cell in cells):
                     headers = [c.get_text(' ', strip=True) for c in cells]
-                    print(f"      Headers: {headers}")
+                    logger.debug(f"(General Property Details) Headers: {headers}")
                     continue
                 
                 # Data row with headers
                 if headers and len(cells) == len(headers):
                     row_data = {h: c.get_text(' ', strip=True) for h, c in zip(headers, cells)}
                     rows.append(row_data)
-                    print(f"      Data row: {row_data}")
+                    logger.debug(f"(General Property Details) Data row: {row_data}")
                 # Key-value row
                 elif len(cells) == 2:
                     key = cells[0].get_text(' ', strip=True)
                     value = cells[1].get_text(' ', strip=True)
                     rows.append({key: value})
-                    print(f"      Key-value row: {key} = {value}")
+                    logger.debug(f"(General Property Details) Key-value row: {key} = {value}")
                 # Feature/note row
                 elif len(cells) == 1:
                     value = cells[0].get_text(' ', strip=True)
                     rows.append({'note': value})
-                    print(f"      Note row: {value}")
+                    logger.debug(f"(General Property Details) Note row: {value}")
                 # Multi-column row without headers
                 elif len(cells) > 2:
                     # Create a simple list of values
                     values = [c.get_text(' ', strip=True) for c in cells]
                     rows.append({'values': values})
-                    print(f"      Multi-column row: {values}")
+                    logger.debug(f"(General Property Details) Multi-column row: {values}")
             
             if rows:
                 results[f'table_{table_idx}'] = rows
-                print(f"  Added table_{table_idx} with {len(rows)} rows")
+                logger.debug(f"(General Property Details) Added table_{table_idx} with {len(rows)} rows")
         
         # Extract all <dl> blocks
         dl_idx = 0
@@ -187,6 +194,7 @@ class GeneralPropertyDetailsScraper:
         if p_data:
             results['p_tags'] = p_data
         
+        logger.debug(f"(General Property Details) Extracted data from {len(results)} sources")
         return results
 
     def normalize_key(self, k):
@@ -197,6 +205,7 @@ class GeneralPropertyDetailsScraper:
 
     def map_to_canonical(self, raw_tables: dict) -> dict:
         """Maps raw table data to a canonical JSON structure defined in structure.json."""
+        logger.debug("(General Property Details) Mapping to canonical structure")
         # Load canonical structure
         structure_path = Path(__file__).parent.parent / 'structure.json'
         try:
@@ -230,28 +239,28 @@ class GeneralPropertyDetailsScraper:
         
         # Process all data sources (tables, dl, spans, divs, etc.)
         for source_name, source_data in raw_tables.items():
-            print(f"\nProcessing {source_name}:")
+            logger.debug(f"(General Property Details) Processing {source_name}")
             
             # Handle different data source types
             if source_name.startswith('table_') or source_name.startswith('dl_'):
                 # Process table/dl data as before
                 for row in source_data:
-                    print(f"  Row: {row}")
+                    logger.debug(f"(General Property Details) Row: {row}")
                     matched = False
                     
                     # NEW: Handle value information tables
                     if isinstance(row, dict) and 'Value Type' in row:
-                        print(f"    [VALUE] Found value table row: {row}")
+                        logger.debug(f"(General Property Details) Found value table row: {row}")
                         value_type = row.get('Value Type', '')
                         appraised_value = row.get('Appraised Value', '')
                         if value_type and appraised_value:
                             if 'land' in value_type.lower():
                                 result['value_summary']['land'] = appraised_value
-                                print(f"      -> Matched land value: {appraised_value}")
+                                logger.debug(f"(General Property Details) Matched land value: {appraised_value}")
                                 matched = True
                             elif 'improvement' in value_type.lower():
                                 result['value_summary']['developments'] = appraised_value
-                                print(f"      -> Matched improvement value: {appraised_value}")
+                                logger.debug(f"(General Property Details) Matched improvement value: {appraised_value}")
                                 matched = True
                     
                     # Detect start of a development/building section
@@ -263,35 +272,35 @@ class GeneralPropertyDetailsScraper:
                             developments.append(current_dev)
                         current_dev = copy.deepcopy(canonical['developments'][0])
                         in_development_section = True
-                        print("    -> Detected start of development section")
+                        logger.debug("(General Property Details) Detected start of development section")
                     if in_development_section and current_dev:
                         # Fill development fields
                         for k, v in row.items():
                             norm_k = self.normalize_key(k)
-                            print(f"    [DEV] Key: {k} (norm: {norm_k}), Value: {v}")
+                            logger.debug(f"(General Property Details) Key: {k} (norm: {norm_k}), Value: {v}")
                             if re.search(r'building id|building_id', norm_k):
                                 current_dev['building_id'] = v
-                                print(f"      -> Matched to development building_id")
+                                logger.debug(f"(General Property Details) Matched to development building_id")
                             if re.search(r'residential|type|out building|development', norm_k):
                                 current_dev['type'] = v
-                                print(f"      -> Matched to development type")
+                                logger.debug(f"(General Property Details) Matched to development type")
                             if re.search(r'year built', norm_k):
                                 current_dev['attributes']['year_built'] = v
-                                print(f"      -> Matched to development year_built")
+                                logger.debug(f"(General Property Details) Matched to development year_built")
                             if re.search(r'sq ft', norm_k):
                                 current_dev['attributes']['sq_ft'] = v
-                                print(f"      -> Matched to development sq_ft")
+                                logger.debug(f"(General Property Details) Matched to development sq_ft")
                             if re.search(r'bedroom', norm_k):
                                 current_dev['attributes']['bedrooms'] = v
-                                print(f"      -> Matched to development bedrooms")
+                                logger.debug(f"(General Property Details) Matched to development bedrooms")
                             if re.search(r'bath', norm_k):
                                 current_dev['attributes']['baths'] = v
-                                print(f"      -> Matched to development baths")
+                                logger.debug(f"(General Property Details) Matched to development baths")
                     else:
                         # Fill top-level fields
                         for k, v in row.items():
                             norm_k = self.normalize_key(k)
-                            print(f"    [TOP] Key: {k} (norm: {norm_k}), Value: {v}")
+                            logger.debug(f"(General Property Details) Key: {k} (norm: {norm_k}), Value: {v}")
                             for field, patterns in field_patterns.items():
                                 for pat in patterns:
                                     if re.search(pat, norm_k):
@@ -301,53 +310,53 @@ class GeneralPropertyDetailsScraper:
                                             result[parent][child] = v
                                         else:
                                             result[field] = v
-                                        print(f"      -> Matched to {field} (pattern: {pat})")
+                                        logger.debug(f"(General Property Details) Matched to {field} (pattern: {pat})")
                                         matched = True
                                         break
                                 if matched:
                                     break
                         if not matched:
-                            print(f"      -> No match for this row.")
+                            logger.debug(f"(General Property Details) No match for this row.")
             
             elif source_name == 'spans':
                 # Process span data
-                print(f"  Processing spans: {source_data}")
+                logger.debug(f"(General Property Details) Processing spans: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [SPAN] Key: {k}, Value: {v}")
+                    logger.debug(f"(General Property Details) Key: {k}, Value: {v}")
                     if k == 'property_address':
                         result['physical_address'] = v
-                        print(f"      -> Matched to physical_address")
+                        logger.debug(f"(General Property Details) Matched to physical_address")
                     elif k == 'owner_name':
                         result['owner_name'] = v
-                        print(f"      -> Matched to owner_name")
+                        logger.debug(f"(General Property Details) Matched to owner_name")
                     elif k == 'percent_ownership':
                         # Store as additional info
-                        print(f"      -> Found percent_ownership: {v}")
+                        logger.debug(f"(General Property Details) Found percent_ownership: {v}")
             
             elif source_name == 'divs':
                 # Process div data
-                print(f"  Processing divs: {source_data}")
+                logger.debug(f"(General Property Details) Processing divs: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [DIV] Key: {k}, Value: {v}")
+                    logger.debug(f"(General Property Details) Key: {k}, Value: {v}")
                     # Try to extract addresses from div content
                     if 'address' in k.lower():
                         # Look for address patterns in the text
                         address_match = re.search(r'(\d+\s+[A-Z\s]+(?:ST|DR|AVE|ROAD|STREET))', v, re.IGNORECASE)
                         if address_match and not result['physical_address']:
                             result['physical_address'] = address_match.group(1).strip()
-                            print(f"      -> Extracted physical_address from div")
+                            logger.debug(f"(General Property Details) Extracted physical_address from div")
                     elif 'owner' in k.lower():
                         # Look for owner patterns in the text
                         owner_match = re.search(r'([A-Z\s&]+(?:TRUSTEE|TRUST|LLC|INC))', v, re.IGNORECASE)
                         if owner_match and not result['owner_name']:
                             result['owner_name'] = owner_match.group(1).strip()
-                            print(f"      -> Extracted owner_name from div")
+                            logger.debug(f"(General Property Details) Extracted owner_name from div")
             
             elif source_name == 'strong_tags':
                 # Process strong tag data
-                print(f"  Processing strong tags: {source_data}")
+                logger.debug(f"(General Property Details) Processing strong tags: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [STRONG] Key: {k}, Value: {v}")
+                    logger.debug(f"(General Property Details) Key: {k}, Value: {v}")
                     norm_k = self.normalize_key(k)
                     for field, patterns in field_patterns.items():
                         for pat in patterns:
@@ -357,22 +366,23 @@ class GeneralPropertyDetailsScraper:
                                     result[parent][child] = v
                                 else:
                                     result[field] = v
-                                print(f"      -> Matched to {field} (pattern: {pat})")
+                                logger.debug(f"(General Property Details) Matched to {field} (pattern: {pat})")
                                 break
             
             elif source_name == 'p_tags':
                 # Process p tag data
-                print(f"  Processing p tags: {source_data}")
+                logger.debug(f"(General Property Details) Processing p tags: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [P] Key: {k}, Value: {v}")
+                    logger.debug(f"(General Property Details) Key: {k}, Value: {v}")
                     if 'extended_legal' in k.lower():
                         result['legal']['extended'] = v
-                        print(f"      -> Matched to legal.extended")
+                        logger.debug(f"(General Property Details) Matched to legal.extended")
         
         if current_dev:
             developments.append(current_dev)
         # Remove empty developments
         result['developments'] = [d for d in developments if any(v for v in d['attributes'].values())]
+        logger.debug(f"(General Property Details) Mapped to canonical structure with {len(result['developments'])} developments")
         return result
 
     def scrape(self) -> dict:
@@ -382,17 +392,20 @@ class GeneralPropertyDetailsScraper:
         self.write_tables_to_file(raw_tables)
         filled = self.map_to_canonical(raw_tables)
         self.write_filled_json(filled)
+        logger.info("(General Property Details) Completed property details scrape")
         return filled
 
 def scrape_property_details(url: str, config: dict = None) -> dict:
     """Instantiate and use the appropriate PropertyDetailsScraper based on the URL and county."""
+    logger.info(f"(General Property Details) Starting property details scrape for County: {config['county'].lower()}")
+    
     # Get county from config if available
     county = None
     if config and 'county' in config:
         county = config['county'].lower()
     
-    print(f"DEBUG: URL = {url}")
-    print(f"DEBUG: County = {county}")
+    logger.debug(f"(General Property Details) URL = {url}")
+    logger.debug(f"(General Property Details) County = {county}")
     
     # Check if this is a Greenwood county URL or if county is Fremont/Sublette
     use_greenwood = (
@@ -415,59 +428,59 @@ def scrape_property_details(url: str, config: dict = None) -> dict:
         county in ['teton_county_wy']
     )
     
-    print(f"DEBUG: Use Greenwood = {use_greenwood}")
-    print(f"DEBUG: Use Lincoln = {use_lincoln}")
-    print(f"DEBUG: Use Teton = {use_teton}")
-    print(f"DEBUG: Use Teton Idaho = {use_teton_idaho}")
+    logger.debug(f"(General Property Details) Use Greenwood = {use_greenwood}")
+    logger.debug(f"(General Property Details) Use Lincoln = {use_lincoln}")
+    logger.debug(f"(General Property Details) Use Teton = {use_teton}")
+    logger.debug(f"(General Property Details) Use Teton Idaho = {use_teton_idaho}")
     
     if use_greenwood:
         try:
-            print("DEBUG: Attempting to import Greenwood scraper...")
+            logger.debug("(General Property Details) Attempting to import Greenwood scraper...")
             from overrides.property_details.greenwood_details_scrape import GreenwoodPropertyDetailsScraper
-            print("DEBUG: Greenwood scraper imported successfully")
+            logger.debug("(General Property Details) Greenwood scraper imported successfully")
             scraper = GreenwoodPropertyDetailsScraper(url, config)
-            print("DEBUG: Using Greenwood scraper")
+            logger.info("(General Property Details) Using Greenwood scraper")
             return scraper.scrape()
         except ImportError as e:
-            print(f"Warning: Greenwood scraper not found, falling back to general scraper. Error: {e}")
+            logger.warning(f"(General Property Details) Greenwood scraper not found, falling back to general scraper. Error: {e}")
             scraper = GeneralPropertyDetailsScraper(url, config)
             return scraper.scrape()
     elif use_teton_idaho:
         try:
-            print("DEBUG: Attempting to import Teton Idaho scraper...")
+            logger.debug("(General Property Details) Attempting to import Teton Idaho scraper...")
             from overrides.property_details.teton_county_id_details import scrape_property_details as teton_idaho_scrape_property_details
-            print("DEBUG: Teton Idaho scraper imported successfully")
-            print("DEBUG: Using Teton Idaho scraper")
+            logger.debug("(General Property Details) Teton Idaho scraper imported successfully")
+            logger.info("(General Property Details) Using Teton Idaho scraper")
             return teton_idaho_scrape_property_details(url)
         except ImportError as e:
-            print(f"Warning: Teton Idaho scraper not found, falling back to general scraper. Error: {e}")
+            logger.warning(f"(General Property Details) Teton Idaho scraper not found, falling back to general scraper. Error: {e}")
             scraper = GeneralPropertyDetailsScraper(url, config)
             return scraper.scrape()
     elif use_lincoln:
         try:
-            print("DEBUG: Attempting to import Lincoln scraper...")
+            logger.debug("(General Property Details) Attempting to import Lincoln scraper...")
             from overrides.property_details.lincoln_county_wy_details import LincolnPropertyDetailsScraper
-            print("DEBUG: Lincoln scraper imported successfully")
+            logger.debug("(General Property Details) Lincoln scraper imported successfully")
             scraper = LincolnPropertyDetailsScraper(url, config)
-            print("DEBUG: Using Lincoln scraper")
+            logger.info("(General Property Details) Using Lincoln scraper")
             return scraper.scrape()
         except ImportError as e:
-            print(f"Warning: Lincoln scraper not found, falling back to general scraper. Error: {e}")
+            logger.warning(f"(General Property Details) Lincoln scraper not found, falling back to general scraper. Error: {e}")
             scraper = GeneralPropertyDetailsScraper(url, config)
             return scraper.scrape()
     elif use_teton:
         try:
-            print("DEBUG: Attempting to import Teton scraper...")
+            logger.debug("(General Property Details) Attempting to import Teton scraper...")
             from overrides.property_details.teton_county_wy_detials import scrape_property_details as teton_scrape_property_details
-            print("DEBUG: Teton scraper imported successfully")
-            print("DEBUG: Using Teton scraper")
+            logger.debug("(General Property Details) Teton scraper imported successfully")
+            logger.info("(General Property Details) Using Teton scraper")
             return teton_scrape_property_details(url)
         except ImportError as e:
-            print(f"Warning: Teton scraper not found, falling back to general scraper. Error: {e}")
+            logger.warning(f"(General Property Details) Teton scraper not found, falling back to general scraper. Error: {e}")
             scraper = GeneralPropertyDetailsScraper(url, config)
             return scraper.scrape()
     else:
         # Use the general scraper for other counties
-        print("DEBUG: Using general scraper")
+        logger.info("(General Property Details) Using general scraper")
         scraper = GeneralPropertyDetailsScraper(url, config)
         return scraper.scrape() 

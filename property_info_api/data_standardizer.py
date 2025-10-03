@@ -3,6 +3,10 @@ import json
 import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 class DataStandardizer:
     """Standardizes all API responses into a consistent format."""
@@ -21,6 +25,7 @@ class DataStandardizer:
                     county = config_file.replace('.json', '')
                     with open(f"{config_dir}/{config_file}") as f:
                         configs[county] = json.load(f)
+        logger.debug(f"Loaded {len(configs)} county configs from {config_dir}")
         return configs
     
     def extract_field(self, field_name: str, data_sources: Dict) -> Optional[Any]:
@@ -41,6 +46,7 @@ class DataStandardizer:
                     sources.extend(field_config.get("sources", []))
         
         if not sources:
+            logger.debug(f"No mapping found for field: {field_name}")
             return None
         
         # Try sources in priority order
@@ -100,10 +106,9 @@ class DataStandardizer:
             elif transform_name == "add_two_fields":
                 # Format: "add_two_fields:field1,field2"
                 fields_to_add = source_config.get("fields_to_add", [])
-                print("camer here with fields: ", fields_to_add)
+                logger.debug(f"(Data Standardizer) Adding two fields: {fields_to_add}")
 
                 if len(fields_to_add) == 2:
-                    print("came here with fields: ", fields_to_add)
                     field1_val = self.extract_field(fields_to_add[0], data_sources)
                     field2_val = self.extract_field(fields_to_add[1], data_sources)
                     val1 = float(field1_val) if field1_val else 0
@@ -140,10 +145,10 @@ class DataStandardizer:
                 second_half_paid = float(value) if value else 0
                 return bill_amount - first_half_paid - second_half_paid
             else:
-                print(f"[DataStandardizer] Unknown transform: {transform_name}")
+                logger.warning(f"(Data Standardizer) Unknown transform: {transform_name}")
                 return value
         except Exception as e:
-            print(f"[DataStandardizer] Error applying transform {transform_name}: {str(e)}")
+            logger.error(f"(Data Standardizer) Error applying transform {transform_name}: {str(e)}")
             return value
 
     def _format_county_state(self, county: str) -> str:
@@ -166,6 +171,7 @@ class DataStandardizer:
         if not historical_data:
             return []
         
+        logger.debug(f"(Data Standardizer) Standardizing {len(historical_data)} historical records")
         standardized_historical = []
         for record in historical_data:
             # Create virtual data source for this single historical record
@@ -200,11 +206,12 @@ class DataStandardizer:
     
     def standardize_tax_data(self) -> Dict:
         """Standardize tax data from any scraper into consistent format."""
-        print(f"[TAX] Standardizing tax data for county: {self.county}")
+        logger.info(f"(Data Standardizer) Standardizing tax data for {self.county}")
         
         raw_tax_data = self.raw_data.get("tax_data") if self.raw_data else None
         
         if not raw_tax_data or raw_tax_data.get("error"):
+            logger.warning(f"(Data Standardizer) Tax data unavailable for {self.county}: {raw_tax_data.get('error') if raw_tax_data else 'No data'}")
             return {
                 "status": "error",
                 "message": raw_tax_data.get("error", "Tax data unavailable") if raw_tax_data else "Tax data unavailable",
@@ -253,13 +260,17 @@ class DataStandardizer:
             "timestamp": datetime.now().isoformat()
         }
         
+        logger.info(f"(Data Standardizer) Completed tax data standardization for {self.county}")
         return standardized
     
     def standardize_property_data(self,) -> Dict:
         """Standardize property details data from any scraper into consistent format."""
+        logger.info(f"(Data Standardizer) Standardizing property data for {self.county}")
+        
         raw_property_data = self.raw_data.get("property_data") if self.raw_data else None
         
         if not raw_property_data or raw_property_data.get("error"):
+            logger.warning(f"(Data Standardizer) Property data unavailable for {self.county}: {raw_property_data.get('error') if raw_property_data else 'No data'}")
             return {
                 "status": "error",
                 "message": raw_property_data.get("error", "Property data unavailable") if raw_property_data else "Property data unavailable",
@@ -298,13 +309,17 @@ class DataStandardizer:
             "timestamp": datetime.now().isoformat()
         }
         
+        logger.info(f"(Data Standardizer) Completed property data standardization for {self.county}")
         return standardized
     
     def standardize_clerk_data(self) -> Dict:
         """Standardize clerk/recorder data into consistent format."""
+        logger.info(f"(Data Standardizer) Standardizing clerk data for {self.county}")
+        
         raw_clerk_data = self.raw_data.get("clerk_data") if self.raw_data else None
         
         if not raw_clerk_data or raw_clerk_data.get("error"):
+            logger.warning(f"(Data Standardizer) Clerk data unavailable for {self.county}: {raw_clerk_data.get('error') if raw_clerk_data else 'No data'}")
             return {
                 "status": "error",
                 "message": raw_clerk_data.get("error", "Clerk data unavailable") if raw_clerk_data else "Clerk data unavailable",
@@ -315,6 +330,7 @@ class DataStandardizer:
         
         # For Teton County, return the raw API response instead of standardizing
         if self.county == "teton_county_wy":
+            logger.info(f"(Data Standardizer) Returning raw clerk data for {self.county} (no standardization)")
             return {
                 "status": "success",
                 "message": "Clerk data retrieved successfully",
@@ -343,6 +359,7 @@ class DataStandardizer:
             "timestamp": datetime.now().isoformat()
         }
         
+        logger.info(f"(Data Standardizer) Completed clerk data standardization for {self.county}")
         return standardized
     
     def _create_general_info(self) -> Dict:
@@ -380,12 +397,13 @@ class DataStandardizer:
         if not developments:
             return []
         
+        logger.debug(f"(Data Standardizer) Standardizing {len(developments)} developments")
         standardized_developments = []
         for development in developments:
             # Skip components - only process main buildings
-            print("development.get(Component Type): ", development.get("Component Type"))
+            logger.debug(f"(Data Standardizer) Processing development: {development.get('Component Type')}")
             if development.get("Component Type") == "Component":
-                print(f"[DEBUG] Skipping component: {development.get('Building Component', 'Unknown Component')}")
+                logger.debug(f"(Data Standardizer) Skipping component: {development.get('Building Component', 'Unknown Component')}")
                 continue
             
             # Create virtual data source for this single development
@@ -427,6 +445,14 @@ class DataStandardizer:
                            clerk_data: Optional[Dict], county: str, county_links: Dict = None) -> Dict:
         """Standardize the complete API response."""
         
+        logger.info(f"(Data Standardizer) Starting API response standardization for {county}")
+        
+        # Coalesce None inputs to empty dicts to prevent NoneType errors
+        tax_data = tax_data or {}
+        property_data = property_data or {}
+        clerk_data = clerk_data or {}
+        county_links = county_links or {}
+        
         # Create raw data structure
         raw_data = {
             "tax_data": tax_data,
@@ -434,7 +460,7 @@ class DataStandardizer:
             "clerk_data": clerk_data,
             "county_links": county_links  # Add links to raw data
         }
-        print(f"[DEBUG] Raw data: {county}")
+        
         # Create standardizer instance with raw data AND county
         standardizer = DataStandardizer(raw_data=raw_data, county=county)
         

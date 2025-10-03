@@ -4,17 +4,35 @@
 import requests
 from typing import Dict
 from datetime import datetime
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 def scrape_clerk(url: str, county: str = None) -> Dict:
     """Scrape clerk records from Teton County Wyoming using direct API calls."""
     try:
-        print(f"[TETON_CLERK] Scraping Teton County WY clerk URL: {url}")
+        logger.info(f"(Teton County WY Clerk) Starting Teton County WY clerk scrape")
         start_time = datetime.now()
         
-        response = requests.get(url, timeout=15)
+        # Extract statepin from the dashboard URL
+        if "#statepin=" in url:
+            statepin = url.split("#statepin=")[1]
+        else:
+            # Fallback: try to extract from other URL patterns
+            logger.warning(f"(Teton County WY Clerk) Could not extract statepin from URL: {url}")
+            return {"error": "Could not extract statepin from URL", "source": "teton_county_wy_clerk"}
+        
+        # Hardcoded API URL with the extracted statepin
+        api_url = f"https://gis.tetoncountywy.gov/server/rest/services/Public_Services/land_records_search/FeatureServer/0/query?f=json&cacheHint=true&resultOffset=0&resultRecordCount=20000&where=statepin%3D%27{statepin}%27&orderByFields=statepin%20ASC%2Cdatetimeoffiling%20DESC&outFields=%2A&resultType=standard&returnGeometry=false&spatialRel=esriSpatialRelIntersects"
+        
+        logger.debug(f"(Teton County WY Clerk) Using API URL with statepin: {statepin}")
+        
+        response = requests.get(api_url, timeout=15)
         response.raise_for_status()
         
         data = response.json()
+        logger.debug(f"(Teton County WY Clerk) Retrieved {len(data.get('features', []))} features from API")
         
         # Clean and filter the features
         cleaned_features = []
@@ -53,22 +71,22 @@ def scrape_clerk(url: str, county: str = None) -> Dict:
         }
         
         processing_time = (datetime.now() - start_time).total_seconds()
-        print(f"[TETON_CLERK] Scraping completed in {processing_time:.2f} seconds")
+        logger.info(f"(Teton County WY Clerk) Scraping completed in {processing_time:.2f} seconds with {len(cleaned_features)} records")
         
         return result
         
     except Exception as e:
-        print(f"[TETON_CLERK] Error: {e}")
+        logger.error(f"(Teton County WY Clerk) Error: {e}")
         return {"error": str(e), "source": "teton_county_wy_clerk"}
 
 def print_clerk_summary(clerk_data: Dict) -> None:
     """Print a summary of the clerk data."""
-    print("\n" + "="*80)
-    print("️ TETON COUNTY WYOMING CLERK RECORDS SUMMARY")
-    print("="*80)
+    logger.debug("="*80)
+    logger.debug("️ TETON COUNTY WYOMING CLERK RECORDS SUMMARY")
+    logger.debug("="*80)
     
     records_count = clerk_data.get('records_count', 0)
-    print(f"📄 Total Records Found: {records_count}")
+    logger.debug(f"📄 Total Records Found: {records_count}")
     
     if records_count > 0:
         api_response = clerk_data.get('api_response', {})
@@ -81,11 +99,11 @@ def print_clerk_summary(clerk_data: Dict) -> None:
             record_type = attrs.get('description', 'UNKNOWN')
             record_types[record_type] = record_types.get(record_type, 0) + 1
         
-        print(f"\n📋 Record Types Found:")
+        logger.debug(f"📋 Record Types Found:")
         for record_type, count in record_types.items():
-            print(f"   • {record_type}: {count}")
+            logger.debug(f"   • {record_type}: {count}")
         
         if records_count > 10:
-            print(f"   ... and {records_count - 10} more records")
+            logger.debug(f"   ... and {records_count - 10} more records")
     
-    print("="*80)
+    logger.debug("="*80)

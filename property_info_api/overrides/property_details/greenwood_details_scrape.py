@@ -4,6 +4,10 @@ import re
 import json
 import copy
 from pathlib import Path
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
     """
@@ -11,13 +15,11 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
     Handles the nested table structure and building sections specific to Greenwood county pages.
     """
     def scrape(self):
-        print("cat mans")
+        logger.info("(Greenwood Property Details) Starting Greenwood property details scrape")
         """Driver method to fetch and extract property details."""
         self.fetch()
         raw_tables = self.extract_all_tables_and_lists()
-        self.write_tables_to_file(raw_tables)
         filled = self.map_to_canonical(raw_tables)
-        self.write_filled_json(filled)
         return filled
     
     def clean_text(self, text: str) -> str:
@@ -32,6 +34,7 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
 
     def extract_all_tables_and_lists(self) -> dict:
         """Override to handle Greenwood's specific HTML structure."""
+        logger.debug("(Greenwood Property Details) Extracting tables and lists")
         results = {}
         if not self.soup:
             return results
@@ -41,17 +44,17 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         # Extract tables with Greenwood-specific logic
         tables = self.soup.find_all('table')
-        print(f"Found {len(tables)} tables in the HTML")
+        logger.debug(f"(Greenwood Property Details) Found {len(tables)} tables in the HTML")
         table_idx = 0
         
         for table in tables:
             table_idx += 1
-            print(f"Processing table {table_idx}")
+            logger.debug(f"(Greenwood Property Details) Processing table {table_idx}")
             rows = []
             
             # Get all rows in this table
             table_rows = table.find_all('tr', recursive=False)
-            print(f"  Table {table_idx} has {len(table_rows)} rows")
+            logger.debug(f"(Greenwood Property Details) Table {table_idx} has {len(table_rows)} rows")
             
             # Process building data if this looks like a building table
             if self.is_building_table(table_rows):
@@ -62,12 +65,13 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             
             if rows:
                 results[f'table_{table_idx}'] = rows
-                print(f"  Added table_{table_idx} with {len(rows)} rows")
+                logger.debug(f"(Greenwood Property Details) Added table_{table_idx} with {len(rows)} rows")
         
         # Combine all extracted data with spans first
         if span_data:
             results['spans'] = span_data
         
+        logger.debug(f"(Greenwood Property Details) Extracted data from {len(results)} sources")
         return results
 
     def extract_span_data(self) -> dict:
@@ -101,7 +105,9 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             if row.get('class') and 'divider' in row.get('class', []):
                 cells = row.find_all(['td', 'th'], recursive=False)
                 section_text = ' '.join([self.clean_text(c.get_text(' ', strip=True)) for c in cells])
-                if 'residential' in section_text.lower() or 'out building' in section_text.lower():
+                # Check for various building types in the divider text
+                building_keywords = ['residential', 'out building', 'commercial', 'building', 'structure']
+                if any(keyword in section_text.lower() for keyword in building_keywords):
                     return True
         return False
 
@@ -114,18 +120,18 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         for i, row in enumerate(table_rows):
             cells = row.find_all(['td', 'th'], recursive=False)
-            print(f"    Row {i} has {len(cells)} cells")
+            logger.debug(f"(Greenwood Property Details) Row {i} has {len(cells)} cells")
             
             # Handle section dividers (building headers)
             if row.get('class') and 'divider' in row.get('class', []):
                 # If we have a current development, save it before starting a new one
                 if development:
-                    print(f"      Closing development: {development}")
+                    logger.debug(f"(Greenwood Property Details) Closing development: {development}")
                     developments.append(development)
                 
                 # Start new development
                 current_building_section = [self.clean_text(c.get_text(' ', strip=True)) for c in cells]
-                print(f"      Section divider: {current_building_section}")
+                logger.debug(f"(Greenwood Property Details) Section divider: {current_building_section}")
                 development = []
                 development.append(current_building_section)
                 continue
@@ -133,25 +139,25 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             # Handle This is the main building data row
             if (i == 0 and len(cells) > 2) or (row.get('class') and 'toprow' in row.get('class', [])) or any(cell.name == 'th' for cell in cells):
                 main_building_row = [self.clean_text(c.get_text(' ', strip=True)) for c in cells]
-                print(f"      Headers: {main_building_row}")
+                logger.debug(f"(Greenwood Property Details) Headers: {main_building_row}")
                 development.append(main_building_row)
                 continue
         
             # Process component rows
             elif len(cells) > 2:
                 component_row = [self.clean_text(c.get_text(' ', strip=True)) for c in cells]
-                print(f"      Component row: {component_row}")
+                logger.debug(f"(Greenwood Property Details) Component row: {component_row}")
                 if component_row:
-                    print(f"      Building component: {component_row}")
+                    logger.debug(f"(Greenwood Property Details) Building component: {component_row}")
                     development.append(component_row)
                     continue
 
         # Add the final development if it exists
         if development:
-            print(f"      Final development: {development}")
+            logger.debug(f"(Greenwood Property Details) Final development: {development}")
             developments.append(development)
         
-        print(f"    Developments: {developments}")
+        logger.debug(f"(Greenwood Property Details) Developments: {developments}")
         return developments
 
     def process_regular_table(self, table_rows) -> list:
@@ -161,15 +167,15 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         for i, row in enumerate(table_rows):
             cells = row.find_all(['td', 'th'], recursive=False)
-            print(f"    Row {i} has {len(cells)} cells")
+            logger.debug(f"(Greenwood Property Details) Row {i} has {len(cells)} cells")
             
             # Header row
             if (i == 0 and len(cells) > 2) or (row.get('class') and 'toprow' in row.get('class', [])) or any(cell.name == 'th' for cell in cells):
                 headers = [self.clean_text(c.get_text(' ', strip=True)) for c in cells]
-                print(f"      Headers: {headers}")
+                logger.debug(f"(Greenwood Property Details) Headers: {headers}")
                 continue
-            print(f"      Headers: {headers}")
-            print(f"      Cells: {cells}")
+            logger.debug(f"(Greenwood Property Details) Headers: {headers}")
+            logger.debug(f"(Greenwood Property Details) Cells: {cells}")
             # Data row with headers
             
             # Key-value row
@@ -177,23 +183,24 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                 key = self.clean_text(cells[0].get_text(' ', strip=True))
                 value = self.clean_text(cells[1].get_text(' ', strip=True))
                 rows.append({key: value})
-                print(f"      Key-value row: {key} = {value}")
+                logger.debug(f"(Greenwood Property Details) Key-value row: {key} = {value}")
             # Single cell row
             elif len(cells) == 1:
                 value = self.clean_text(cells[0].get_text(' ', strip=True))
                 rows.append({'note': value})
-                print(f"      Note row: {value}")
+                logger.debug(f"(Greenwood Property Details) Note row: {value}")
             # Multi-column row
             elif len(cells) > 2:
                 values = [self.clean_text(c.get_text(' ', strip=True)) for c in cells]
 
                 rows.append({values[-1]: values[0]})
-                print(f"      Multi-column row: {values}")
+                logger.debug(f"(Greenwood Property Details) Multi-column row: {values}")
         
         return rows
     
     def map_to_canonical(self, raw_tables: dict) -> dict:
         """Override to handle Greenwood's specific data structure."""
+        logger.debug("(Greenwood Property Details) Mapping to canonical structure")
         # Load canonical structure
         try:
             with open('structure.json') as f:
@@ -208,29 +215,28 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         # Process all data sources
         for source_name, source_data in raw_tables.items():
-            print(f"\nProcessing {source_name}:")
-            print(f"    ", source_data)
-            print(f"    source data 0", source_name[0])
+            logger.debug(f"(Greenwood Property Details) Processing {source_name}")
+            logger.debug(f"(Greenwood Property Details) Source data: {source_data}")
             
             if source_name.startswith('table_'):
                 # Check if this is building data (3D array structure)
                 if isinstance(source_data, list) and len(source_data) > 0 and isinstance(source_data[0], list):
-                    print(f"  Processing building data (3D array): {len(source_data)} developments")
+                    logger.debug(f"(Greenwood Property Details) Processing building data (3D array): {len(source_data)} developments")
                     
                     for development_idx, development in enumerate(source_data):
-                        print(f"    Development {development_idx}: {len(development)} rows")
+                        logger.debug(f"(Greenwood Property Details) Development {development_idx}: {len(development)} rows")
                         
                         development_name = "Unknown Development"
                         main_building_data = None
                         component_details = []
                         
                         for row_idx, row in enumerate(development):
-                            print(f"      Row {row_idx}: {row}")
+                            logger.debug(f"(Greenwood Property Details) Row {row_idx}: {row}")
                             
                             if row_idx == 0:
                                 # This is the section divider (development name)
                                 development_name = row[0] if row else "Unknown Development"
-                                print(f"        -> Development name: {development_name}")
+                                logger.debug(f"(Greenwood Property Details) Development name: {development_name}")
                             elif row_idx == 1:
                                 # This is the main building data row
                                 if len(row) >= 7:  # Should have all the building attributes
@@ -257,7 +263,7 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                         'Component Type': 'Main Building'  # Main building
                                     }
                                     developments.append(building_row)
-                                    print(f"        -> Main building data: {main_building_data}")
+                                    logger.debug(f"(Greenwood Property Details) Main building data: {main_building_data}")
                             else:
                                 # This is a component row
                                 if len(row) >= 1:  # Should have at least description
@@ -285,7 +291,7 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                         'Component Type': 'Component'
                                     }
                                     developments.append(component_row)
-                                    print(f"        -> Component detail: {component_detail}")
+                                    logger.debug(f"(Greenwood Property Details) Component detail: {component_detail}")
                         
                         
                 else:
@@ -295,7 +301,7 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                         
                         # Skip rows with 'note' entries
                         if isinstance(row, dict) and 'note' in row:
-                            print("    Skipping row with 'note'")
+                            logger.debug("(Greenwood Property Details) Skipping row with 'note'")
                             continue
                         
                                                 # Handle parcel/land data
@@ -304,55 +310,55 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                             matched = False
                             for k, v in row.items():
                                 norm_k = self.normalize_key(k)
-                                print(f"    [TOP PASS 1] Key: {k} (norm: {norm_k}), Value: {v}")
+                                logger.debug(f"(Greenwood Property Details) Key: {k} (norm: {norm_k}), Value: {v}")
                                 
                                 for i in range(2):
                                     
                                     if i == 1:
-                                        print(f"    [TOP PASS 2] Key: {k} (norm: {norm_k}), Value: {v}")
+                                        logger.debug(f"(Greenwood Property Details) Key: {k} (norm: {norm_k}), Value: {v}")
                                         norm_k = self.normalize_key(v)
                                         v = k
-                                    print(f"    'residential' in norm_k", 'residential' in norm_k)
+                                    logger.debug(f"(Greenwood Property Details) 'residential' in norm_k: {'residential' in norm_k}")
                                             
                                     # Map top-level fields
                                     if re.search(r'pidn', norm_k):
                                         result['county_parcel_id'] = v
-                                        print(f"      -> Matched to county_parcel_id")
+                                        logger.debug(f"(Greenwood Property Details) Matched to county_parcel_id")
                                         matched = True
                                     elif re.search(r'tax id', norm_k):
                                         result['tax_id'] = v
-                                        print(f"      -> Matched to tax_id")
+                                        logger.debug(f"(Greenwood Property Details) Matched to tax_id")
                                         matched = True
                                     elif re.search(r'street address', norm_k):
                                         result['physical_address'] = v
-                                        print(f"      -> Matched to physical_address")
+                                        logger.debug(f"(Greenwood Property Details) Matched to physical_address")
                                         matched = True
                                     elif re.search(r'mailing address', norm_k):
                                         result['mailing_address'] = v
-                                        print(f"      -> Matched to mailing_address")
+                                        logger.debug(f"(Greenwood Property Details) Matched to mailing_address")
                                         matched = True
                                     elif re.search(r'owner', norm_k):
                                         result['owner_name'] = v
-                                        print(f"      -> Matched to owner_name")
+                                        logger.debug(f"(Greenwood Property Details) Matched to owner_name")
                                         matched = True
                                     elif re.search(r'tax district', norm_k):
                                         result['tax_district'] = v
-                                        print(f"      -> Matched to tax_district")
+                                        logger.debug(f"(Greenwood Property Details) Matched to tax_district")
                                         matched = True
                                     elif re.search(r'acres', norm_k):
                                         result['total_acres'] = v
-                                        print(f"      -> Matched to total_acres")
+                                        logger.debug(f"(Greenwood Property Details) Matched to total_acres")
                                         matched = True
                                     elif re.search(r'location', norm_k):
                                         result['legal']['location'] = v
-                                        print(f"      -> Matched to legal.location")
+                                        logger.debug(f"(Greenwood Property Details) Matched to legal.location")
                                         matched = True
                                     elif re.search(r'deed', norm_k):
                                         result['deed'] = v
-                                        print(f"      -> Matched to deed")
+                                        logger.debug(f"(Greenwood Property Details) Matched to deed")
                                         matched = True
                                     elif re.search(r'actual value', norm_k):
-                                        print(f"      -> Matched to value_summary", v)
+                                        logger.debug(f"(Greenwood Property Details) Matched to value_summary: {v}")
                                         
                                         # Extract total actual value (first dollar amount)
                                         total_match = re.search(r'\$\s*([0-9,]+)', v)
@@ -360,7 +366,7 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                             # Convert to number by removing commas and converting to float
                                             total_value = float(total_match.group(1).replace(',', ''))
                                             result['value_summary']['total_value'] = total_value
-                                            print(f"      -> Extracted total actual value: {total_value}")
+                                            logger.debug(f"(Greenwood Property Details) Extracted total actual value: {total_value}")
                                         
                                         # Extract land and improvement values from the value string
                                         land_match = re.search(r'\$\s*([0-9,]+)\s+Land', v)
@@ -369,68 +375,72 @@ class GreenwoodPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                             # Convert to number by removing commas and converting to float
                                             land_value = float(land_match.group(1).replace(',', ''))
                                             result['value_summary']['land'] = land_value
-                                            print(f"      -> Extracted land value: {land_value}")
+                                            logger.debug(f"(Greenwood Property Details) Extracted land value: {land_value}")
                                         if improvement_match:
                                             # Convert to number by removing commas and converting to float
                                             developments_value = float(improvement_match.group(1).replace(',', ''))
                                             result['value_summary']['developments'] = developments_value
-                                            print(f"      -> Extracted improvement value: {developments_value}")
+                                            logger.debug(f"(Greenwood Property Details) Extracted improvement value: {developments_value}")
                                         matched = True
 
                                     elif 'total' in norm_k:
                                             result['total_acres'] = v
-                                            print(f"      -> Matched total_acres with value as identifier: {k}")
+                                            logger.debug(f"(Greenwood Property Details) Matched total_acres with value as identifier: {k}")
                                             matched = True
                                     elif 'residential' in norm_k:
-                                        print(f"      -> Matched residential acreage: {k} acres")
+                                        logger.debug(f"(Greenwood Property Details) Matched residential acreage: {k} acres")
                                         result['acreage_breakdown']['residential'] = v
                                         matched = True
                                     elif 'agricultural' in norm_k:
                                         result['acreage_breakdown']['agricultural'] = v
-                                        print(f"      -> Matched agricultural acreage: {k} acres")
+                                        logger.debug(f"(Greenwood Property Details) Matched agricultural acreage: {k} acres")
                                         matched = True
                                     elif 'commercial' in norm_k:
                                         result['acreage_breakdown']['commercial'] = v
-                                        print(f"      -> Matched commercial acreage: {k} acres")
+                                        logger.debug(f"(Greenwood Property Details) Matched commercial acreage: {k} acres")
                                         matched = True
                                     elif 'industrial' in norm_k:
                                         result['acreage_breakdown']['industrial'] = v
-                                        print(f"      -> Matched industrial acreage: {k} acres")
+                                        logger.debug(f"(Greenwood Property Details) Matched industrial acreage: {k} acres")
                                         matched = True
                                     elif 'other' in norm_k or 'misc' in norm_k or 'mixed' in norm_k:
                                         result['acreage_breakdown']['other'] = v
-                                        print(f"      -> Matched other acreage: {k} acres")
+                                        logger.debug(f"(Greenwood Property Details) Matched other acreage: {k} acres")
                                         matched = True
                                     # Second pass: if no matches found, try with value as the field name
                                     if matched:
-                                        print(f"      -> Cam HERE")
+                                        logger.debug(f"(Greenwood Property Details) Matched successfully")
                                         break
                                     
                         else:
-                            print(f"      -> Matched to building_data_2d", row)
+                            logger.debug(f"(Greenwood Property Details) Matched to building_data_2d: {row}")
                             
             elif source_name == 'spans':
                 # Process span data
-                print(f"  Processing spans: {source_data}")
+                logger.debug(f"(Greenwood Property Details) Processing spans: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [SPAN] Key: {k}, Value: {v}")
+                    logger.debug(f"(Greenwood Property Details) Key: {k}, Value: {v}")
                     if k == 'property_address':
                         result['physical_address'] = v
-                        print(f"      -> Matched to physical_address")
+                        logger.debug(f"(Greenwood Property Details) Matched to physical_address")
                     elif k == 'owner_name':
                         result['owner_name'] = v
-                        print(f"      -> Matched to owner_name")
+                        logger.debug(f"(Greenwood Property Details) Matched to owner_name")
                     elif k == 'percent_ownership':
-                        print(f"      -> Found percent_ownership: {v}")
+                        logger.debug(f"(Greenwood Property Details) Found percent_ownership: {v}")
         
         # Add the 2D building data to the result
         
         # Add developments to the canonical structure
         result['developments'] = developments
         
+        logger.debug(f"(Greenwood Property Details) Mapped to canonical structure with {len(developments)} developments")
         return result
 
 def scrape_property_details(url: str, config: dict = None) -> dict:
     """Instantiate and use the Greenwood-specific PropertyDetailsScraper."""
+    logger.info("(Greenwood Property Details) Starting Greenwood property details scrape")
     scraper = GreenwoodPropertyDetailsScraper(url, config)
-    return scraper.scrape()
+    result = scraper.scrape()
+    logger.info("(Greenwood Property Details) Completed Greenwood property details scrape")
+    return result

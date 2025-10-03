@@ -5,6 +5,10 @@ import json
 import copy
 import time
 from pathlib import Path
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
     """
@@ -14,6 +18,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
     
     def scrape(self) -> dict:
         """Driver method to fetch and extract property details."""
+        logger.info("(Lincoln County WY Property) Starting Lincoln County WY property details scrape")
         start_time = time.time()
         
         # Track retrieval time
@@ -24,14 +29,12 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         # Track parsing time
         parsing_start = time.time()
         raw_tables = self.extract_all_tables_and_lists()
-        self.write_tables_to_file(raw_tables)
         filled = self.map_to_canonical(raw_tables)
-        self.write_filled_json(filled)
         parsing_time = time.time() - parsing_start
         
         total_time = time.time() - start_time
         
-        print(f"[LINCOLN] Timing - Retrieval: {retrieval_time:.2f}s, Parsing: {parsing_time:.2f}s, Total: {total_time:.2f}s")
+        logger.info(f"(Lincoln County WY Property) Timing - Retrieval: {retrieval_time:.2f}s, Parsing: {parsing_time:.2f}s, Total: {total_time:.2f}s")
         
         return filled
     
@@ -61,7 +64,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         # Extract tables with Lincoln-specific logic
         tables = self.soup.find_all('table')
-        print(f"Found {len(tables)} tables in the HTML")
+        logger.debug(f"(Lincoln County WY Property) Found {len(tables)} tables in the HTML")
         table = tables[0]
         rows = []
         # Debug: Check different ways to find rows
@@ -77,11 +80,11 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             table_rows = tbody_trs
         else:
             table_rows = all_trs
-        print(f"  Using {len(table_rows)} rows for processing")
+        logger.debug(f"(Lincoln County WY Property) Using {len(table_rows)} rows for processing")
         rows = self.process_regular_table(table_rows)
         
         if rows:
-            print(f"    rows: {len(rows)}")
+            logger.debug(f"(Lincoln County WY Property) rows: {len(rows)}")
             results['table_1'] = rows
         
         # Combine all extracted data
@@ -128,7 +131,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         # Find the General Information section
         general_info = self.soup.find('div', class_='ibox-content')
         if general_info:
-            print("Found General Information section")
+            logger.debug("(Lincoln County WY Property) Found General Information section")
             
             # Extract Property Address
             property_address_section = general_info.find('h5', string='Property Address')
@@ -137,7 +140,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                 if address_div:
                     address = self.clean_text(address_div.get_text())
                     div_data['Property Address'] = address
-                    print(f"  Property Address: {address}")
+                    logger.debug(f"(Lincoln County WY Property) Property Address: {address}")
             
             # Extract Owner Information
             owner_section = general_info.find('h5', string='Owner Name & Address')
@@ -155,20 +158,20 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                 if owner_spans:
                     # First span is usually the owner name
                     div_data['Primary Owner'] = owner_spans[0]
-                    print(f"  Primary Owner: {owner_spans[0]}")
+                    logger.debug(f"(Lincoln County WY Property) Primary Owner: {owner_spans[0]}")
                     
                     # Combine address parts
                     if len(owner_spans) > 1:
                         mailing_address = ' '.join(owner_spans[1:])
                         div_data['Mailing Address'] = mailing_address
-                        print(f"  Mailing Address: {mailing_address}")
+                        logger.debug(f"(Lincoln County WY Property) Mailing Address: {mailing_address}")
             
             # Extract Extended Legal
             extended_legal = general_info.find('strong', string='Extended Legal:')
             if extended_legal:
                 legal_text = self.clean_text(extended_legal.next_sibling)
                 div_data['Extended Legal'] = legal_text
-                print(f"  Extended Legal: {legal_text}")
+                logger.debug(f"(Lincoln County WY Property) Extended Legal: {legal_text}")
         
         return div_data
 
@@ -178,7 +181,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         # Find all definition lists
         dls = self.soup.find_all('dl')
-        print(f"Found {len(dls)} definition lists")
+        logger.debug(f"(Lincoln County WY Property) Found {len(dls)} definition lists")
         
         for dl in dls:
             dts = dl.find_all('dt')
@@ -190,7 +193,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                 value = self.clean_text(dd.get_text())
                 if key and value:
                     dl_data[key] = value
-                    print(f"  {key}: {value}")
+                    logger.debug(f"(Lincoln County WY Property) {key}: {value}")
         
         return dl_data
 
@@ -204,7 +207,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         for section in building_sections:
             section_text = self.clean_text(section.get_text())
             if 'building id' in section_text.lower():
-                print(f"Found building section: {section_text}")
+                logger.debug(f"(Lincoln County WY Property) Found building section: {section_text}")
                 
                 # Extract building ID
                 building_id_match = re.search(r'building id\s*(\d+)', section_text.lower())
@@ -254,130 +257,130 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                     # Fallback: try to find ibox-content as direct sibling of h4
                     ibox_content = section.find_next_sibling('div', class_='ibox-content')
                 if ibox_content:
-                    print(f"  Found ibox-content for {section_text}")
+                    logger.debug(f"(Lincoln County WY Property) Found ibox-content for {section_text}")
                     
                     # Look for all definition lists in this building section
                     dls = ibox_content.find_all('dl')
-                    print(f"  Found {len(dls)} definition lists")
+                    logger.debug(f"(Lincoln County WY Property) Found {len(dls)} definition lists")
                     
                     for dl_idx, dl in enumerate(dls):
-                        print(f"    Processing dl {dl_idx}")
+                        logger.debug(f"(Lincoln County WY Property) Processing dl {dl_idx}")
                         dts = dl.find_all('dt')
                         dds = dl.find_all('dd')
-                        print(f"      Found {len(dts)} dt elements and {len(dds)} dd elements")
+                        logger.debug(f"(Lincoln County WY Property) Found {len(dts)} dt elements and {len(dds)} dd elements")
                         
                         for dt, dd in zip(dts, dds):
                             key = self.clean_text(dt.get_text()).lower()
                             value = self.clean_text(dd.get_text())
                             
-                            print(f"      Processing: '{key}' = '{value}'")
+                            logger.debug(f"(Lincoln County WY Property) Processing: '{key}' = '{value}'")
                             
                             if key and value:
                                 # Map building attributes - store in exact key match first, then populate Type
                                 if 'heat' in key:
                                     building_data['Heat'] = value
-                                    print(f"        -> Heat: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Heat: {value}")
                                 elif 'total sq ft' in key:
                                     building_data['Total Sq Ft'] = value
                                     building_data['Sq Ft'] = value  # Also populate generic Sq Ft
-                                    print(f"        -> Total Sq Ft: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Total Sq Ft: {value}")
                                 elif 'condo sq ft' in key:
                                     building_data['Condo Sq Ft'] = value
-                                    print(f"        -> Condo Sq Ft: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Condo Sq Ft: {value}")
                                 elif 'bsmt sq ft' in key and 'fin' not in key:
                                     building_data['Bsmt Sq Ft'] = value
-                                    print(f"        -> Bsmt Sq Ft: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Bsmt Sq Ft: {value}")
                                 elif 'bsmt fin sq ft' in key:
                                     building_data['Bsmt Fin Sq Ft'] = value
-                                    print(f"        -> Bsmt Fin Sq Ft: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Bsmt Fin Sq Ft: {value}")
                                 elif 'property type' in key:
                                     building_data['Property Type'] = value
                                     building_data['Type'] = value  # Also populate generic Type
-                                    print(f"        -> Property Type: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Property Type: {value}")
                                 elif 'built as' in key:
                                     building_data['Built As'] = value
                                     if not building_data['Type']:  # Don't override property type
                                         building_data['Type'] = value
-                                    print(f"        -> Built As: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Built As: {value}")
                                 elif 'occupancy' in key:
                                     building_data['Occupancy'] = value
                                     if not building_data['Type']:
                                         building_data['Type'] = value
-                                        print(f"        -> Type (from occupancy): {value}")
+                                        logger.debug(f"(Lincoln County WY Property) -> Type (from occupancy): {value}")
                                 elif 'roof type' in key:
                                     building_data['Roof Type'] = value
                                     building_data['Roof Cover'] = value  # Also populate generic
-                                    print(f"        -> Roof Type: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Roof Type: {value}")
                                 elif 'roof cover' in key:
                                     building_data['Roof Cover'] = value
-                                    print(f"        -> Roof Cover: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Roof Cover: {value}")
                                 elif 'foundation' in key:
                                     building_data['Foundation'] = value
-                                    print(f"        -> Foundation: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Foundation: {value}")
                                 elif 'year built' in key and 'remodel' not in key:
                                     building_data['Year Built'] = value
                                     building_data['Year Built*'] = value  # Also populate generic
-                                    print(f"        -> Year Built: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Year Built: {value}")
                                 elif 'year remodel' in key:
                                     building_data['Year Remodel'] = value
-                                    print(f"        -> Year Remodel: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Year Remodel: {value}")
                                 elif key == 'rooms':
                                     building_data['Rooms'] = value
-                                    print(f"        -> Rooms: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Rooms: {value}")
                                 elif 'bed rooms' in key:
                                     building_data['Bed Rooms'] = value
                                     building_data['Bedrooms'] = value  # Also populate generic
-                                    print(f"        -> Bed Rooms: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Bed Rooms: {value}")
                                 elif key == 'bedrooms':
                                     building_data['Bedrooms'] = value
-                                    print(f"        -> Bedrooms: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Bedrooms: {value}")
                                 elif 'bath' in key:
                                     building_data['Baths'] = value
-                                    print(f"        -> Baths: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Baths: {value}")
                                 elif key == 'units':
                                     building_data['Units'] = value
-                                    print(f"        -> Units: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Units: {value}")
                                 elif 'unit type' in key:
                                     building_data['Unit Type'] = value
-                                    print(f"        -> Unit Type: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Unit Type: {value}")
                                 elif 'quality' in key:
                                     building_data['Quality'] = value
-                                    print(f"        -> Quality: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Quality: {value}")
                                 elif 'condition' in key:
                                     building_data['Condition'] = value
-                                    print(f"        -> Condition: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Condition: {value}")
                                 elif 'class descr' in key:
                                     building_data['Class Descr'] = value
                                     building_data['Exterior'] = value  # Also populate generic
-                                    print(f"        -> Class Descr: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Class Descr: {value}")
                                 elif key == 'exterior':
                                     building_data['Exterior'] = value
-                                    print(f"        -> Exterior: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Exterior: {value}")
                                 elif 'interior' in key:
                                     building_data['Interior'] = value
-                                    print(f"        -> Interior: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Interior: {value}")
                                 elif 'stories' in key:
                                     building_data['Stories'] = value
-                                    print(f"        -> Stories: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Stories: {value}")
                                 else:
-                                    print(f"        -> Unmatched: {key} = {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> Unmatched: {key} = {value}")
                 else:
-                    print(f"  No ibox-content found for {section_text}")
+                    logger.debug(f"(Lincoln County WY Property) No ibox-content found for {section_text}")
                 
                 # Add the building to our list
                 buildings.append(building_data)
-                print(f"  Added building: {building_data}")
+                logger.debug(f"(Lincoln County WY Property) Added building: {building_data}")
         
         # If no buildings found with h4 headers, look for alternative structures
         if not buildings:
-            print("No h4 building sections found, looking for alternative structures...")
+            logger.debug("(Lincoln County WY Property) No h4 building sections found, looking for alternative structures...")
             
             # Look for any divs that might contain building information
             building_divs = self.soup.find_all('div', class_=['ibox', 'building-info', 'property-details'])
             for div in building_divs:
                 div_text = self.clean_text(div.get_text()[:200])  # First 200 chars
                 if any(keyword in div_text.lower() for keyword in ['building', 'property type', 'sq ft', 'year built']):
-                    print(f"Found potential building div: {div_text}")
+                    logger.debug(f"(Lincoln County WY Property) Found potential building div: {div_text}")
                     # Extract basic building info from this div
                     # (Add more specific extraction logic here if needed)
         
@@ -396,9 +399,9 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             if len(values_land) >= 3:  # Check if we have enough columns
                 land_value = float(values_land[-3].replace('$', '').replace(',', '').replace('.00', ''))  # Appraised value column
                 rows.append({"Land": land_value})
-                print(f"  Land value: {land_value}")
+                logger.debug(f"(Lincoln County WY Property) Land value: {land_value}")
             else:
-                print(f"  Warning: Not enough columns in land row: {len(values_land)}")
+                logger.debug(f"(Lincoln County WY Property) Warning: Not enough columns in land row: {len(values_land)}")
         
         # Extract improvement values (rows 1 and 2) - only if they exist
         improvement_1 = 0
@@ -410,7 +413,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             if len(values_dev_1) >= 3:
                 improvement_1 = float(values_dev_1[-3].replace('$', '').replace(',', '').replace('.00', ''))
             else:
-                print(f"  Warning: Not enough columns in improvement row 1: {len(values_dev_1)}")
+                logger.debug(f"(Lincoln County WY Property) Warning: Not enough columns in improvement row 1: {len(values_dev_1)}")
         
         if len(table_rows) > 2:
             cells_dev_2 = table_rows[2].find_all(['td', 'th'], recursive=False)
@@ -418,13 +421,13 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             if len(values_dev_2) >= 3:
                 improvement_2 = float(values_dev_2[-3].replace('$', '').replace(',', '').replace('.00', ''))
             else:
-                print(f"  Warning: Not enough columns in improvement row 2: {len(values_dev_2)}")
+                logger.debug(f"(Lincoln County WY Property) Warning: Not enough columns in improvement row 2: {len(values_dev_2)}")
         
         # Calculate total improvements
         total_improvement = improvement_1 + improvement_2
         if total_improvement > 0:
             rows.append({"Improvements": total_improvement})
-            print(f"  Total improvements: {total_improvement}")
+            logger.debug(f"(Lincoln County WY Property) Total improvements: {total_improvement}")
         
         return rows
     
@@ -440,27 +443,27 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
         
         # Process all data sources
         for source_name, source_data in raw_tables.items():
-            print(f"\nProcessing {source_name}:")
-            print(f"    {source_data}")
+            logger.debug(f"(Lincoln County WY Property) Processing {source_name}:")
+            logger.debug(f"(Lincoln County WY Property) {source_data}")
             
             if source_name.startswith('table_'):
                 # Skip tables that contain 'note' entries
                 if isinstance(source_data, list) and any(isinstance(row, dict) and 'note' in row for row in source_data):
-                    print(f"  Skipping {source_name} - contains 'note' entries")
+                    logger.debug(f"(Lincoln County WY Property) Skipping {source_name} - contains 'note' entries")
                     continue
                 
                 # Check if this is building data (3D array structure)
                 if isinstance(source_data, list) and len(source_data) > 0 and isinstance(source_data[0], list):
-                    print(f"  Processing building data (3D array): {len(source_data)} buildings")
+                    logger.debug(f"(Lincoln County WY Property) Processing building data (3D array): {len(source_data)} buildings")
                     
                     for building_idx, building in enumerate(source_data):
-                        print(f"    Building {building_idx}: {len(building)} rows")
+                        logger.debug(f"(Lincoln County WY Property) Building {building_idx}: {len(building)} rows")
                         
                         building_data = {}
                         building_name = f"Building {building_idx + 1}"
                         
                         for row_idx, row in enumerate(building):
-                            print(f"      Row {row_idx}: {row}")
+                            logger.debug(f"(Lincoln County WY Property) Row {row_idx}: {row}")
                             
                             if row_idx == 0 and 'building id' in ' '.join(row).lower():
                                 # Extract building ID
@@ -468,7 +471,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                     if cell and cell.lower() != 'building id':
                                         building_name = f"Building {cell}"
                                         break
-                                print(f"        -> Building name: {building_name}")
+                                logger.debug(f"(Lincoln County WY Property) -> Building name: {building_name}")
                             
                             elif len(row) == 2:
                                 # Key-value pair
@@ -476,7 +479,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                 value = self.clean_text(row[1])
                                 if key and value:
                                     building_data[key] = value
-                                    print(f"        -> {key}: {value}")
+                                    logger.debug(f"(Lincoln County WY Property) -> {key}: {value}")
                         
                         # Create building entry
                         if building_data:
@@ -492,7 +495,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                 'Component Type': 'Main Building'
                             }
                             developments.append(building_entry)
-                            print(f"        -> Created building: {building_entry}")
+                            logger.debug(f"(Lincoln County WY Property) -> Created building: {building_entry}")
                 
                 else:
                     # Check if this is a value breakdown table
@@ -500,11 +503,11 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                     
                     # Process regular table data
                     for row in source_data:
-                        print(f"  Row: {row}")
+                        logger.debug(f"(Lincoln County WY Property) Row: {row}")
                         
                         # Skip rows with 'note' entries
                         if isinstance(row, dict) and 'note' in row:
-                            print("    Skipping row with 'note'")
+                            logger.debug("(Lincoln County WY Property) Skipping row with 'note'")
                             continue
                         
                         # Handle parcel/land data
@@ -516,89 +519,89 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                                     norm_k = self.normalize_key(k if pass_num == 0 else v)
                                     value = v if pass_num == 0 else k
                                     
-                                    print(f"    [PASS {pass_num + 1}] Key: {k}, Value: {v} (norm: {norm_k})")
+                                    logger.debug(f"(Lincoln County WY Property) [PASS {pass_num + 1}] Key: {k}, Value: {v} (norm: {norm_k})")
                                     
                                     # Map top-level fields
                                     if re.search(r'pidn', norm_k):
                                         result['county_parcel_id'] = value
-                                        print(f"      -> Matched to county_parcel_id")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to county_parcel_id")
                                         matched = True
                                     elif re.search(r'tax id', norm_k):
                                         result['tax_id'] = value
-                                        print(f"      -> Matched to tax_id")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to tax_id")
                                         matched = True
                                     elif re.search(r'parcel number', norm_k):
                                         result['county_parcel_id'] = value
-                                        print(f"      -> Matched to county_parcel_id")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to county_parcel_id")
                                         matched = True
                                     elif re.search(r'account number', norm_k):
                                         result['tax_id'] = value
-                                        print(f"      -> Matched to tax_id")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to tax_id")
                                         matched = True
                                     elif re.search(r'property address', norm_k) or re.search(r'street address', norm_k):
                                         result['physical_address'] = value
-                                        print(f"      -> Matched to physical_address")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to physical_address")
                                         matched = True
                                     elif re.search(r'mailing address', norm_k):
                                         result['mailing_address'] = value
-                                        print(f"      -> Matched to mailing_address")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to mailing_address")
                                         matched = True
                                     elif re.search(r'owner name', norm_k) or re.search(r'primary owner', norm_k):
                                         result['owner_name'] = value
-                                        print(f"      -> Matched to owner_name")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to owner_name")
                                         matched = True
                                     elif re.search(r'tax district', norm_k):
                                         result['tax_district'] = value
-                                        print(f"      -> Matched to tax_district")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to tax_district")
                                         matched = True
                                     elif re.search(r'total acres', norm_k) or re.search(r'acres', norm_k):
                                         result['total_acres'] = value
-                                        print(f"      -> Matched to total_acres")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to total_acres")
                                         matched = True
                                     elif re.search(r'legal description', norm_k) or re.search(r'extended legal', norm_k):
                                         result['legal']['location'] = value
-                                        print(f"      -> Matched to legal.location")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.location")
                                         matched = True
                                     elif re.search(r'subdivision', norm_k):
                                         result['legal']['subdivision'] = value
-                                        print(f"      -> Matched to legal.subdivision")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.subdivision")
                                         matched = True
                                     elif re.search(r'deed', norm_k):
                                         result['deed'] = value
-                                        print(f"      -> Matched to deed")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to deed")
                                         matched = True
                                     elif re.search(r'land', norm_k):
                                         result['value_summary']['land'] = value
-                                        print(f"      -> Matched to land value")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to land value")
                                         matched = True
                                     elif re.search(r'improvement', norm_k):
                                         result['value_summary']['developments'] = value
-                                        print(f"      -> Matched to developments value")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to developments value")
                                         matched = True
                                     elif re.search(r'total', norm_k):
                                         result['value_summary']['total_value'] = value
-                                        print(f"      -> Matched to total value")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched to total value")
                                         matched = True
                                     # Handle acreage breakdown
                                     elif 'residential' in norm_k:
                                         result['acreage_breakdown']['residential'] = float(value) if value.replace('.', '').isdigit() else value
-                                        print(f"      -> Matched residential acreage: {value}")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched residential acreage: {value}")
                                         matched = True
                                     elif 'agricultural' in norm_k:
                                         result['acreage_breakdown']['agricultural'] = float(value) if value.replace('.', '').isdigit() else value
-                                        print(f"      -> Matched agricultural acreage: {value}")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched agricultural acreage: {value}")
                                         matched = True
                                     elif 'commercial' in norm_k:
                                         result['acreage_breakdown']['commercial'] = float(value) if value.replace('.', '').isdigit() else value
-                                        print(f"      -> Matched commercial acreage: {value}")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched commercial acreage: {value}")
                                         matched = True
                                     elif 'industrial' in norm_k:
                                         result['acreage_breakdown']['industrial'] = float(value) if value.replace('.', '').isdigit() else value
-                                        print(f"      -> Matched industrial acreage: {value}")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched industrial acreage: {value}")
                                         matched = True
                                     elif 'other' in norm_k or 'misc' in norm_k or 'mixed' in norm_k:
                                         result['acreage_breakdown']['other'] = float(value) if value.replace('.', '').isdigit() else value
-                                        print(f"      -> Matched other acreage: {value}")
+                                        logger.debug(f"(Lincoln County WY Property) -> Matched other acreage: {value}")
                                         matched = True
                                     
                                     if matched:
@@ -609,95 +612,95 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
             
             elif source_name == 'spans':
                 # Process span data
-                print(f"  Processing spans: {source_data}")
+                logger.debug(f"(Lincoln County WY Property) Processing spans: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [SPAN] Key: {k}, Value: {v}")
+                    logger.debug(f"(Lincoln County WY Property) [SPAN] Key: {k}, Value: {v}")
                     if k == 'property_address':
                         result['physical_address'] = v
-                        print(f"      -> Matched to physical_address")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to physical_address")
                     elif k == 'owner_name':
                         result['owner_name'] = v
-                        print(f"      -> Matched to owner_name")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to owner_name")
                     elif k == 'percent_ownership':
-                        print(f"      -> Found percent_ownership: {v}")
+                        logger.debug(f"(Lincoln County WY Property) -> Found percent_ownership: {v}")
             
             elif source_name == 'divs':
                 # Process div-based data
-                print(f"  Processing divs: {source_data}")
+                logger.debug(f"(Lincoln County WY Property) Processing divs: {source_data}")
                 for k, v in source_data.items():
-                    print(f"    [DIV] Key: {k}, Value: {v}")
+                    logger.debug(f"(Lincoln County WY Property) [DIV] Key: {k}, Value: {v}")
                     if k == 'Property Address':
                         result['physical_address'] = v
-                        print(f"      -> Matched to physical_address")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to physical_address")
                     elif k == 'Primary Owner':
                         result['owner_name'] = v
-                        print(f"      -> Matched to owner_name")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to owner_name")
                     elif k == 'Mailing Address':
                         result['mailing_address'] = v
-                        print(f"      -> Matched to mailing_address")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to mailing_address")
                     elif k == 'Extended Legal':
                         result['legal']['location'] = v
-                        print(f"      -> Matched to legal.location")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.location")
             
             elif source_name == 'definition_lists':
                 # Process definition list data
-                print(f"  Processing definition lists: {source_data}")
+                logger.debug(f"(Lincoln County WY Property) Processing definition lists: {source_data}")
                 for k, v in source_data.items():
                     norm_k = self.normalize_key(k)
-                    print(f"    [DL] Key: {k} (norm: {norm_k}), Value: {v}")
+                    logger.debug(f"(Lincoln County WY Property) [DL] Key: {k} (norm: {norm_k}), Value: {v}")
                     
                     # Map legal description fields
                     if norm_k == 'subdivision':
                         result['legal']['subdivision'] = v
-                        print(f"      -> Matched to legal.subdivision")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.subdivision")
                     elif norm_k == 'lot':
                         result['legal']['lot'] = v
-                        print(f"      -> Matched to legal.lot")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.lot")
                     elif norm_k == 'block':
                         result['legal']['block'] = v
-                        print(f"      -> Matched to legal.block")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.block")
                     elif norm_k == 'section':
                         result['legal']['section'] = v
-                        print(f"      -> Matched to legal.section")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.section")
                     elif norm_k == 'township':
                         result['legal']['township'] = v
-                        print(f"      -> Matched to legal.township")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.township")
                     elif norm_k == 'range':
                         result['legal']['range'] = v
-                        print(f"      -> Matched to legal.range")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to legal.range")
                     
                     # Map property information fields
                     elif 'parcel number' in norm_k:
                         result['county_parcel_id'] = v
-                        print(f"      -> Matched to county_parcel_id")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to county_parcel_id")
                     elif 'account number' in norm_k:
                         # Extract just the account number, not the link
                         account_match = re.search(r'([A-Z0-9]+)', v)
                         if account_match:
                             result['tax_id'] = account_match.group(1)
-                            print(f"      -> Matched to tax_id: {account_match.group(1)}")
+                            logger.debug(f"(Lincoln County WY Property) -> Matched to tax_id: {account_match.group(1)}")
                     elif 'tax district' in norm_k:
                         result['tax_district'] = v
-                        print(f"      -> Matched to tax_district")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to tax_district")
                     elif 'total acres' in norm_k:
                         result['total_acres'] = v
-                        print(f"      -> Matched to total_acres")
+                        logger.debug(f"(Lincoln County WY Property) -> Matched to total_acres")
                     elif 'square feet' in norm_k:
-                        print(f"      -> Found square feet: {v}")
+                        logger.debug(f"(Lincoln County WY Property) -> Found square feet: {v}")
                     elif 'current mill levy' in norm_k:
-                        print(f"      -> Found mill levy: {v}")
+                        logger.debug(f"(Lincoln County WY Property) -> Found mill levy: {v}")
             
             elif source_name == 'buildings':
                 # Process building data into flat structure
-                print(f"  Processing buildings: {len(source_data)} buildings found")
+                logger.debug(f"(Lincoln County WY Property) Processing buildings: {len(source_data)} buildings found")
                 for building in source_data:
-                    print(f"    [BUILDING] {building}")
+                    logger.debug(f"(Lincoln County WY Property) [BUILDING] {building}")
                     
                     # Option 1: Create a flattened building structure (simple dict)
                     flat_building = {}
                     
                     # Add ALL attributes to the flat structure (including empty ones)
-                    print(f"      -> Adding building: {building.items()}")
+                    logger.debug(f"(Lincoln County WY Property) -> Adding building: {building.items()}")
                     for key, value in building.items():
                         flat_building[key] = value  # Include ALL attributes, even empty ones
                     
@@ -713,7 +716,7 @@ class LincolnPropertyDetailsScraper(GeneralPropertyDetailsScraper):
                     # }
                     
                     developments.append(flat_building)
-                    print(f"    -> Flattened: {flat_building}")
+                    logger.debug(f"(Lincoln County WY Property) -> Flattened: {flat_building}")
         
         # Add developments to the canonical structure
         result['developments'] = developments

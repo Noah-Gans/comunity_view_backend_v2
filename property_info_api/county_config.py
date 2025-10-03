@@ -1,4 +1,8 @@
 """County-specific configuration for link construction."""
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 COUNTY_CONFIG = {
     "teton_county_wy": {
@@ -11,8 +15,8 @@ COUNTY_CONFIG = {
             "field": "accountno"
         },
         "clerk_records": {
-            # Full ArcGIS query with URL-encoded params; {value} will be replaced with the parcel's PIDN/statepin
-            "url_template": "https://gis.tetoncountywy.gov/server/rest/services/Public_Services/land_records_search/FeatureServer/0/query?f=json&cacheHint=true&resultOffset=0&resultRecordCount=20000&where=statepin%3D%27{value}%27&orderByFields=statepin%20ASC%2Cdatetimeoffiling%20DESC&outFields=%2A&resultType=standard&returnGeometry=false&spatialRel=esriSpatialRelIntersects",
+            # Dashboard URL for frontend display
+            "base_url": "https://gis.tetoncountywy.gov/portal/apps/dashboards/03ef10d8b8634909b6263e9016bcc986#statepin=",
             "field": "pidn"
         }
     },
@@ -60,11 +64,12 @@ COUNTY_CONFIG = {
 
 def construct_links(county: str, fields: dict) -> dict:
     """Construct URLs for all data types based on county and field values."""
-    print(f"[CONFIG] Constructing links for county: {county}")
-    print(f"[CONFIG] Fields: {fields}")
+    logger.info(f"(County Config) Building links for {county}")
     
     county_config = COUNTY_CONFIG.get(county, {})
-    print(f"[CONFIG] Found config: {county_config}")
+    if not county_config:
+        logger.warning(f"(County Config) No config found for county: {county}")
+        return {}
     
     links = {}
     
@@ -81,7 +86,6 @@ def construct_links(county: str, fields: dict) -> dict:
             continue
             
         link_config = county_config.get(config_key, {})
-        print(f"[CONFIG] Link config for {field_name}: {link_config}")
         
         if "static_url" in link_config:
             # Static URL (like clerk records that don't need field values)
@@ -93,5 +97,5 @@ def construct_links(county: str, fields: dict) -> dict:
             base_url = link_config["base_url"]
             links[field_name] = f"{base_url}{field_value}"
     
-    print(f"[CONFIG] Final links: {links}")
+    logger.info(f"(County Config) Built {len(links)} links for {county}")
     return links

@@ -7,19 +7,24 @@ import os
 import re
 import json
 from datetime import datetime
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 def scrape_tax(url: str) -> Dict:
     """Scrape tax information from Teton County Wyoming using direct API calls."""
     try:
-        print(f"[TETON_WY_TAX] Scraping Teton County WY URL: {url}")
+        logger.info(f"(Teton County WY Tax) Starting Teton County WY tax scrape")
         start_time = time.time()
         
         # Extract tax_id from the URL
         tax_id = extract_tax_id_from_url(url)
         if not tax_id:
+            logger.error("Could not extract tax_id from URL")
             return {"error": "Could not extract tax_id from URL"}
         
-        print(f"[TETON_WY_TAX] Extracted tax_id: {tax_id}")
+        logger.debug(f"Extracted tax_id: {tax_id}")
         
         # Get general tax data (Layer 0) - account, district, mill levy, etc.
         general_tax_data = get_general_tax_data_from_api(tax_id)
@@ -34,12 +39,12 @@ def scrape_tax(url: str) -> Dict:
         result = process_combined_tax_data(current_tax_data, historical_tax_data, tax_id, general_tax_data)
         
         total_time = time.time() - start_time
-        print(f"[TETON_WY_TAX] Scraping completed in {total_time:.2f} seconds")
+        logger.info(f"(Teton County WY Tax) Teton County WY tax scrape completed in {total_time:.2f} seconds")
         
         return result
         
     except Exception as e:
-        print(f"[TETON_WY_TAX] Error: {e}")
+        logger.error(f"Teton County WY tax scrape error: {e}")
         return {"error": str(e), "source": "teton_county_wy_tax"}
 
 def extract_tax_id_from_url(url: str) -> str:
@@ -56,21 +61,21 @@ def get_general_tax_data_from_api(tax_id: str) -> Dict:
         
         params = {
             'f': 'json',
-            'where': f"parcel='{tax_id}'",
+            'where': f"localno='{tax_id}'",  # Changed from parcel to localno
             'outFields': '*'
         }
         
-        print(f"[TETON_WY_TAX] Fetching general tax data from Layer 0")
+        logger.debug(f"Fetching general tax data from Layer 0 for tax_id: {tax_id}")
         response = requests.get(api_url, params=params, timeout=15)
         response.raise_for_status()
         
         data = response.json()
-        print(f"[TETON_WY_TAX] Retrieved {len(data.get('features', []))} general tax records")
+        logger.debug(f"Retrieved {len(data.get('features', []))} general tax records")
         
         return data
         
     except Exception as e:
-        print(f"[TETON_WY_TAX] General tax API error: {e}")
+        logger.warning(f"General tax API error: {e}")
         return {"features": []}
 
 def get_detailed_current_tax_data_from_api(tax_id: str) -> Dict:
@@ -84,17 +89,17 @@ def get_detailed_current_tax_data_from_api(tax_id: str) -> Dict:
             'outFields': '*'
         }
         
-        print(f"[TETON_WY_TAX] Fetching detailed current tax data from Layer 4")
+        logger.debug(f"Fetching detailed current tax data from Layer 4 for tax_id: {tax_id}")
         response = requests.get(api_url, params=params, timeout=15)
         response.raise_for_status()
         
         data = response.json()
-        print(f"[TETON_WY_TAX] Retrieved {len(data.get('features', []))} detailed current tax records")
+        logger.debug(f"Retrieved {len(data.get('features', []))} detailed current tax records")
         
         return data
         
     except Exception as e:
-        print(f"[TETON_WY_TAX] Detailed current tax API error: {e}")
+        logger.warning(f"Detailed current tax API error: {e}")
         return {"features": []}
 
 def get_historical_tax_data_from_api(tax_id: str) -> Dict:
@@ -110,22 +115,24 @@ def get_historical_tax_data_from_api(tax_id: str) -> Dict:
             'orderByFields': 'taxyear DESC'
         }
         
-        print(f"[TETON_WY_TAX] Fetching historical tax data from Layer 1")
+        logger.debug(f"Fetching historical tax data from Layer 1 for tax_id: {tax_id}")
         response = requests.get(api_url, params=params, timeout=15)
         response.raise_for_status()
         
         data = response.json()
-        print(f"[TETON_WY_TAX] Retrieved {len(data.get('features', []))} historical tax records")
+        logger.debug(f"Retrieved {len(data.get('features', []))} historical tax records")
         
         return data
         
     except Exception as e:
-        print(f"[TETON_WY_TAX] Historical tax API error: {e}")
+        logger.warning(f"Historical tax API error: {e}")
         return {"features": []}
 
 def process_combined_tax_data(current_data: Dict, historical_data: Dict, tax_id: str, general_data: Dict = None) -> Dict:
     """Process both current and historical tax data."""
     try:
+        logger.debug(f"Processing combined tax data for tax_id: {tax_id}")
+        
         # Process current year data (Layer 4 - detailed current year info)
         current_tax = process_current_tax_data(current_data)  # Keep original function name
         
@@ -151,17 +158,19 @@ def process_combined_tax_data(current_data: Dict, historical_data: Dict, tax_id:
         return result
         
     except Exception as e:
-        print(f"[TETON_WY_TAX] Processing error: {e}")
+        logger.error(f"Processing error: {e}")
         return {"error": str(e)}
 
 def process_current_tax_data(current_data: Dict) -> Dict:
     """Process current year tax data from Layer 4."""
     features = current_data.get('features', [])
     if not features:
+        logger.debug("No current tax data features found")
         return None
     
     attrs = features[0].get('attributes', {})
-    
+    logger.debug(f"Processing current tax data: tax_year={attrs.get('taxyear')}")
+    logger.debug(f"Processing current tax data: {features}")
     # Safely handle None values
     total_levied = attrs.get('totallevied', 0) or 0
     total_received = attrs.get('totalreceived', 0) or 0
@@ -192,6 +201,7 @@ def process_current_tax_data(current_data: Dict) -> Dict:
 def process_historical_tax_data(historical_data: Dict) -> list:
     """Process historical tax data from Layer 1."""
     features = historical_data.get('features', [])
+    logger.debug(f"Processing {len(features)} historical tax features")
     
     # Group by year to handle multiple payments per year
     year_data = {}
@@ -246,15 +256,24 @@ def process_historical_tax_data(historical_data: Dict) -> list:
     
     # Sort by year (newest first)
     historical_taxes.sort(key=lambda x: x['tax_year'], reverse=True)
+    logger.debug(f"Processed {len(historical_taxes)} historical tax years")
     return historical_taxes
 
 def process_general_tax_data(general_data: Dict) -> Dict:
     """Process general tax data from Layer 0."""
     features = general_data.get('features', [])
+    logger.debug(f"Processing {general_data} ")
     if not features:
+        logger.debug("No general tax data features found")
         return {}
     
     attrs = features[0].get('attributes', {})
+    logger.debug(f"Processing general tax data: parcel={attrs.get('parcel')}")
+    
+    # Debug: Print all available attributes
+    logger.debug("Available attributes from general tax data:")
+    for key, value in attrs.items():
+        logger.debug(f"  {key}: {value}")
     
     return {
         "account": attrs.get('accountno'),  # Changed from accountnumber to accountno
@@ -278,30 +297,30 @@ def convert_timestamp(timestamp):
 
 def print_tax_summary(tax_data: Dict) -> None:
     """Print a summary of the tax data."""
-    print("\n" + "="*80)
-    print("️ TETON COUNTY WYOMING TAX SUMMARY")
-    print("="*80)
+    logger.debug("="*80)
+    logger.debug("️ TETON COUNTY WYOMING TAX SUMMARY")
+    logger.debug("="*80)
     
     # Current year summary
     current_year = tax_data.get('current_tax')
     if current_year:
-        print(f"📅 CURRENT YEAR ({current_year.get('tax_year', 'N/A')}):")
-        print(f"   👤 Owner: {current_year.get('owner_name', 'N/A')}")
-        print(f"   💰 Total Tax Levied: ${current_year.get('total_tax_levied', 0):,.2f}")
-        print(f"   💸 Amount Due: ${current_year.get('amount_due', 0):,.2f}")
-        print(f"   Status: {current_year.get('status', 'UNKNOWN').upper()}")
+        logger.debug(f"📅 CURRENT YEAR ({current_year.get('tax_year', 'N/A')}):")
+        logger.debug(f"   👤 Owner: {current_year.get('owner_name', 'N/A')}")
+        logger.debug(f"   💰 Total Tax Levied: ${current_year.get('total_tax_levied', 0):,.2f}")
+        logger.debug(f"   💸 Amount Due: ${current_year.get('amount_due', 0):,.2f}")
+        logger.debug(f"   Status: {current_year.get('status', 'UNKNOWN').upper()}")
     
     # Historical summary
     historical = tax_data.get('historical_taxes', [])
     if historical:
-        print(f"\n HISTORICAL DATA ({len(historical)} years):")
+        logger.debug(f"\n HISTORICAL DATA ({len(historical)} years):")
         for record in historical[:5]:  # Show first 5 years
             year = record.get('tax_year', 'N/A')
             total = record.get('total_tax_levied', 0)
             paid = record.get('tax_paid', 0)
             status = "PAID" if paid > 0 else "UNPAID"
-            print(f"   {year}: ${total:,.2f} - {status}")
+            logger.debug(f"   {year}: ${total:,.2f} - {status}")
         if len(historical) > 5:
-            print(f"   ... and {len(historical) - 5} more years")
+            logger.debug(f"   ... and {len(historical) - 5} more years")
     
-    print("="*80)
+    logger.debug("="*80)

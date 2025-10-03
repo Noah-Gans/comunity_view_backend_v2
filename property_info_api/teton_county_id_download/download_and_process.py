@@ -37,6 +37,10 @@ import pandas as pd
 import dbf
 import logging
 
+# Add this import
+sys.path.append(str(Path(__file__).parent.parent))
+from storage.db import save_raw
+
 # Add parent directory to path to import config
 sys.path.append(str(Path(__file__).parent.parent))
 try:
@@ -65,9 +69,10 @@ class TetonCountyDataProcessor:
             self.data_dir = Path(TETON_IDAHO_DATA_DIR)
             self.processed_dir = Path(TETON_IDAHO_PROCESSED_DIR)
         else:
-            self.data_dir = self.base_dir / "data"
-            self.processed_dir = self.base_dir / "processed"
-        self.database_path = self.processed_dir / "teton_county_id.db"
+            # When running from main project directory
+            self.data_dir = Path("property_info_api/teton_county_id_download/data")
+            self.processed_dir = Path("property_info_api/teton_county_id_download/processed")
+        # self.database_path = self.processed_dir / "teton_county_id.db" # Removed
         
         # Create directories
         self.data_dir.mkdir(exist_ok=True)
@@ -386,147 +391,16 @@ class TetonCountyDataProcessor:
             return None
     
     def process_dbf_files(self):
-        """Process all DBF files and convert to SQLite database."""
-        logger.info("Processing DBF files...")
+        """Process all DBF files and save to main property_data.db."""
+        logger.info("Processing DBF files and saving to main database...")
         
-        # Initialize SQLite database
-        self._init_database()
-        
-        # Process each file type
+        # Process each file type and save to main database
         self._process_parcel_master()
-        self._process_improvements()
-        self._process_legal_descriptions()
-        self._process_land_records()
-        self._process_parcel_names()
-        self._process_sales()
-        self._process_permits()
-        self._process_appeals()
+        # You can also process improvements, legal descriptions, etc. if needed
+        # self._process_improvements() 
+        # self._process_legal_descriptions()
         
-        logger.info("DBF processing completed")
-    
-    def _init_database(self):
-        """Initialize the SQLite database with proper schema."""
-        conn = sqlite3.connect(self.database_path)
-        cursor = conn.cursor()
-        
-        # Create main tables
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS parcels (
-                county_parcel_id TEXT PRIMARY KEY,
-                parcel_status TEXT,
-                owner_name TEXT,
-                mailing_address_line1 TEXT,
-                mailing_address_line2 TEXT,
-                mailing_city TEXT,
-                mailing_state TEXT,
-                mailing_zip TEXT,
-                physical_address TEXT,
-                property_zip TEXT,
-                deed_reference1 TEXT,
-                deed_reference2 TEXT,
-                deed_reference3 TEXT,
-                deed_reference4 TEXT,
-                deed_reference5 TEXT,
-                total_value REAL,
-                improvement_value REAL,
-                land_value REAL,
-                total_acres REAL,
-                zoning TEXT,
-                tax_district TEXT,
-                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS improvements (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                county_parcel_id TEXT,
-                improvement_number TEXT,
-                dwelling_type TEXT,
-                property_address TEXT,
-                year_built INTEGER,
-                stories INTEGER,
-                bedrooms INTEGER,
-                bathrooms REAL,
-                fireplaces INTEGER,
-                first_floor_sqft REAL,
-                second_floor_sqft REAL,
-                basement_sqft REAL,
-                attic_sqft REAL,
-                total_sqft REAL,
-                siding TEXT,
-                roofing TEXT,
-                heating_system1 TEXT,
-                heating_system2 TEXT,
-                heating_system3 TEXT,
-                improvement_value REAL,
-                garage1_sqft REAL,
-                garage2_sqft REAL,
-                FOREIGN KEY (county_parcel_id) REFERENCES parcels (county_parcel_id)
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS legal_descriptions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                county_parcel_id TEXT,
-                legal_line1 TEXT,
-                legal_line2 TEXT,
-                legal_line3 TEXT,
-                legal_line4 TEXT,
-                legal_line5 TEXT,
-                legal_line6 TEXT,
-                FOREIGN KEY (county_parcel_id) REFERENCES parcels (county_parcel_id)
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS land_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                county_parcel_id TEXT,
-                land_category INTEGER,
-                land_location TEXT,
-                land_class INTEGER,
-                land_type INTEGER,
-                land_quantity REAL,
-                land_unit TEXT,
-                land_value REAL,
-                FOREIGN KEY (county_parcel_id) REFERENCES parcels (county_parcel_id)
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS sales (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                county_parcel_id TEXT,
-                sale_date TEXT,
-                sale_price REAL,
-                valid_sale TEXT,
-                personal_property_included TEXT,
-                FOREIGN KEY (county_parcel_id) REFERENCES parcels (county_parcel_id)
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS permits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                county_parcel_id TEXT,
-                permit_ref_number TEXT,
-                permit_filing_date TEXT,
-                permit_description TEXT,
-                permit_type TEXT,
-                FOREIGN KEY (county_parcel_id) REFERENCES parcels (county_parcel_id)
-            )
-        ''')
-        
-        # Create indexes for performance
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_parcels_id ON parcels (county_parcel_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_improvements_parcel ON improvements (county_parcel_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_legal_parcel ON legal_descriptions (county_parcel_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_land_parcel ON land_records (county_parcel_id)')
-        
-        conn.commit()
-        conn.close()
+        logger.info("DBF processing completed - all data saved to main database")
     
     def _process_parcel_master(self):
         """Process the main parcel master file (PCPARC00.DBF)."""
@@ -538,87 +412,244 @@ class TetonCountyDataProcessor:
         logger.info("Processing parcel master file...")
         
         try:
-            # Read DBF file using dbf library
             table = dbf.Table(str(dbf_path))
             table.open()
             logger.info(f"Loaded {len(table)} records from parcel master")
             
-            conn = sqlite3.connect(self.database_path)
-            cursor = conn.cursor()
+            # Load all improvements data once into a lookup dictionary
+                        # Load all improvements data once into a lookup dictionary
+            logger.info("Loading improvements data...")
+            improvements_lookup = self._load_improvements_lookup()
+            logger.info(f"Loaded improvements for {len(improvements_lookup)} parcels")
             
-            # Clear existing data
-            cursor.execute('DELETE FROM parcels')
+            # Load all other improvements once
+            logger.info("Loading other improvements data...")
+            other_improvements_lookup = self._load_other_improvements_lookup()
+            logger.info(f"Loaded other improvements for {len(other_improvements_lookup)} parcels")
             
-            # Process each record
+            # Load legal descriptions once
+            logger.info("Loading legal descriptions...")
+            legal_lookup = self._load_legal_lookup()
+            logger.info(f"Loaded legal descriptions for {len(legal_lookup)} parcels")
+            
+            # Process each record and save to main database
             for record in table:
+                parcel_id = str(record.PM_PAR_14).strip()
+                
+                # Get improvements for this parcel from lookups (fast!)
+                improvements = improvements_lookup.get(parcel_id, [])
+                other_improvements = other_improvements_lookup.get(parcel_id, [])
+                developments = improvements + other_improvements
+                
+                # Get legal description for this parcel
+                legal_location = legal_lookup.get(parcel_id, "")
+                
                 parcel_data = {
-                    'county_parcel_id': str(record.PM_PAR_14).strip(),
-                    'parcel_status': str(record.PM_PAR_15).strip(),
-                    'owner_name': str(record.PM_MAIL_NM).strip(),
-                    'mailing_address_line1': str(record.PM_MAIL_A1).strip(),
-                    'mailing_address_line2': str(record.PM_MAIL_A2).strip(),
-                    'mailing_city': str(record.PM_MAIL_CT).strip(),
-                    'mailing_state': str(record.PM_MAIL_ST).strip(),
-                    'mailing_zip': str(record.PM_MAIL_ZP).strip(),
-                    'physical_address': str(record.PM_PROP_AD).strip(),
-                    'property_zip': str(record.PM_PROP_ZP).strip(),
-                    'deed_reference1': str(record.PM_DEEDRF1).strip(),
-                    'deed_reference2': str(record.PM_DEEDRF2).strip(),
-                    'deed_reference3': str(record.PM_DEEDRF3).strip(),
-                    'deed_reference4': str(record.PM_DEEDRF4).strip(),
-                    'deed_reference5': str(record.PM_DEEDRF5).strip(),
-                    'total_value': self._parse_numeric(record.PM_TOT_VAL),
-                    'improvement_value': self._parse_numeric(record.PM_IMP_VAL),
-                    'land_value': self._parse_numeric(record.PM_LND_VAL),
-                    'total_acres': self._parse_numeric(record.PM_PV_ACRE),
-                    'zoning': str(record.PM_ZONING).strip(),
-                    'tax_district': str(record.PM_TAXAREA).strip()
+                    "tax_raw_data": {
+                        "tax_data": {
+                            "tax_id": str(record.PM_DEEDRF1).strip(),
+                            "latest_tax_amount": (amt := self._parse_numeric(getattr(record, 'PM_TAX_AMT', ''))),
+                            "latest_tax_year": (yr := int(self._parse_numeric(getattr(record, 'PM_TAXYEAR', '')) or 0) or None),
+                            "tax_district": str(record.PM_TAXAREA).strip(),
+                            "owner_name": str(record.PM_MAIL_NM).strip(),
+                            "property_address": str(record.PM_PROP_AD).strip(),
+                            "paid_flag": (paid_flag := str(getattr(record, 'PM_PAIDFLG', '')).strip() or None),
+                            "current_tax": (lambda a, y, pf: {
+                                "tax_year": y,
+                                "total_tax_levied": a,
+                                "tax_received": a if (pf == "Y") else 0,
+                                "amount_due": 0 if (pf == "Y") else a,
+                                "status": "PAID" if (pf == "Y") else "DUE",
+                                "first_half": {
+                                    "levied": (a / 2 if a is not None else None),
+                                    "paid": (a / 2 if (pf == "Y" and a is not None) else 0),
+                                    "balance": 0 if (pf == "Y") else (a / 2 if a is not None else None)
+                                },
+                                "second_half": {
+                                    "levied": (a / 2 if a is not None else None),
+                                    "paid": (a / 2 if (pf == "Y" and a is not None) else 0),
+                                    "balance": 0 if (pf == "Y") else (a / 2 if a is not None else None)
+                                }
+                            })(amt, yr, paid_flag)
+                        }
+                    },
+                    "property_raw_data": {
+                        "property_data": {
+                            "county_parcel_id": parcel_id,
+                            "tax_id": str(record.PM_DEEDRF1).strip(),
+                            "owner_name": str(record.PM_MAIL_NM).strip(),
+                            "physical_address": str(record.PM_PROP_AD).strip(),
+                            "mailing_address": f"{str(record.PM_MAIL_A1).strip()}, {str(record.PM_MAIL_CT).strip()}, {str(record.PM_MAIL_ST).strip()} {str(record.PM_MAIL_ZP).strip()}",
+                            "total_acres": str(self._parse_numeric(record.PM_PV_ACRE) or ''),
+                            "value_summary": (lambda tv, iv: {
+                                "total_value": str(tv),
+                                "land": str(max(tv - iv, 0)),
+                                "developments": str(iv)
+                            })(
+                                (self._parse_numeric(record.PM_TOT_VAL) or 0),
+                                (self._parse_numeric(record.PM_IMP_VAL) or 0)
+                            ),
+                            "tax_district": str(record.PM_TAXAREA).strip(),
+                                                        "tax_district": str(record.PM_TAXAREA).strip(),
+                            "deed": f"{str(record.PM_DEEDRF1).strip()}; {str(record.PM_DEEDRF2).strip()}; {str(record.PM_DEEDRF3).strip()}",
+                            # Build deed_url from the numeric part of PM_DEEDRF1
+                            "deed_url": (lambda docnum: (
+                                f"https://tetoncountyid-web.tylerhost.net/web/web/integration/document?DocumentNumberId={docnum}"
+                            ) if docnum else None)(
+                                ''.join(ch for ch in str(record.PM_DEEDRF1).strip() if ch.isdigit())
+                            ),
+                            "developments": developments,
+                            "legal": {
+                                "location": legal_location
+                            }
+                        }
+                    },
+                    "clerk_raw_data": {
+                        "clerk_data": {}
+                    },
+                    "county_links": {
+                        "tax_field": None,
+                        "property_details_field": None,
+                        "clerk_field": "https://tetoncountyid-web.tylerhost.net/web/"
+                    },
+                    "source": "teton_county_id_dbf_import",
+                    "collected_at": datetime.now().isoformat()
                 }
                 
-                # Insert into database
-                cursor.execute('''
-                    INSERT INTO parcels (
-                        county_parcel_id, parcel_status, owner_name,
-                        mailing_address_line1, mailing_address_line2,
-                        mailing_city, mailing_state, mailing_zip,
-                        physical_address, property_zip,
-                        deed_reference1, deed_reference2, deed_reference3,
-                        deed_reference4, deed_reference5,
-                        total_value, improvement_value, land_value,
-                        total_acres, zoning, tax_district
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    parcel_data['county_parcel_id'],
-                    parcel_data['parcel_status'],
-                    parcel_data['owner_name'],
-                    parcel_data['mailing_address_line1'],
-                    parcel_data['mailing_address_line2'],
-                    parcel_data['mailing_city'],
-                    parcel_data['mailing_state'],
-                    parcel_data['mailing_zip'],
-                    parcel_data['physical_address'],
-                    parcel_data['property_zip'],
-                    parcel_data['deed_reference1'],
-                    parcel_data['deed_reference2'],
-                    parcel_data['deed_reference3'],
-                    parcel_data['deed_reference4'],
-                    parcel_data['deed_reference5'],
-                    parcel_data['total_value'],
-                    parcel_data['improvement_value'],
-                    parcel_data['land_value'],
-                    parcel_data['total_acres'],
-                    parcel_data['zoning'],
-                    parcel_data['tax_district']
-                ))
-            
-            conn.commit()
-            conn.close()
+                # Save to main property_data.db
+                save_raw("teton_county_id", parcel_id, parcel_data)
+                
             table.close()
-            
-            logger.info(f"Processed {len(table)} parcel records")
+            logger.info(f"Processed and saved {len(table)} parcels to main database")
             
         except Exception as e:
             logger.error(f"Error processing parcel master: {e}")
+
+    def _load_legal_lookup(self):
+        """Load legal descriptions from PCLEGL00.DBF keyed by LG_PAR_14 → LG_LINE_2."""
+        lookup = {}
+        dbf_path = self.data_dir / "pclegl00.dbf"
+        if not dbf_path.exists():
+            logger.warning("Legal descriptions file not found")
+            return lookup
+        try:
+            table = dbf.Table(str(dbf_path))
+            table.open()
+            for record in table:
+                try:
+                    parcel_id = str(record.LG_PAR_14).strip()
+                    # Use LG_LINE_2 per requirement (e.g., 'SEC 11 T5N R45E')
+                    line2 = str(getattr(record, "LG_LINE_2", "")).strip()
+                    if line2 and parcel_id and parcel_id not in lookup:
+                        lookup[parcel_id] = line2
+                except Exception:
+                    continue
+            table.close()
+        except Exception as e:
+            logger.error(f"Error loading legal descriptions: {e}")
+        return lookup
+
+    def _load_other_improvements_lookup(self):
+        """Load all 'other improvements' from PCOTHI00.DBF into a lookup dictionary keyed by parcel_id."""
+        lookup = {}
+        dbf_path = self.data_dir / "pcothi00.dbf"
+        if not dbf_path.exists():
+            logger.warning("Other Improvements file not found")
+            return lookup
+        
+        try:
+            table = dbf.Table(str(dbf_path))
+            table.open()
+            
+            for record in table:
+                parcel_id = str(record.OI_PAR_14).strip()
+                
+                # Map fields to development-style dict
+                number = str(record.OI_NUMBER).strip()
+                use_code = str(record.OI_USE_COD).strip()
+                oi = {
+                    "Building ID": number or "",                         # keeps consistent ID field
+                    "Description": f"Other Improvement (Use {use_code})" if use_code else "Other Improvement",
+                    "Total Sq Ft": str(self._parse_numeric(record.OI_TOT_SQF) or ''),
+                    "Year Built": str(self._parse_numeric(record.OI_YR_BLT) or ''),
+                    "Improvement Value": str(self._parse_numeric(record.OI_VALUE) or ''),
+                    "Class": str(record.OI_CLASS).strip() if hasattr(record, "OI_CLASS") else "",
+                    "Base Cost": str(self._parse_numeric(record.OI_BAS_CST) or ''),
+                    "Use Code": use_code
+                }
+                
+                # Drop empty values
+                oi = {k: v for k, v in oi.items() if v not in (None, "", "None")}
+                
+                if parcel_id not in lookup:
+                    lookup[parcel_id] = []
+                lookup[parcel_id].append(oi)
+            
+            table.close()
+        except Exception as e:
+            logger.error(f"Error loading other improvements lookup: {e}")
+        
+        return lookup
+        
+    def _load_improvements_lookup(self):
+        """Load all improvements data once into a lookup dictionary."""
+        improvements_lookup = {}
+        
+        dbf_path = self.data_dir / "pcimpc00.dbf"
+        if not dbf_path.exists():
+            logger.warning("Improvements file not found")
+            return improvements_lookup
+        
+        try:
+            table = dbf.Table(str(dbf_path))
+            table.open()
+            
+            for record in table:
+                parcel_id = str(record.IM_PAR_14).strip()
+                
+                improvement = {
+                    "Building ID": str(record.IM_NUMBER).strip(),
+                    "Property Type": str(record.IM_DWELL_N).strip(),
+                    "Property Address": str(record.IM_PROP_AD).strip(),
+                    "Year Built": str(self._parse_numeric(record.IM_YR_BLT) or ''),
+                    "Stories": str(self._parse_numeric(record.IM_STORIES) or ''),
+                    "Bedrooms": str(self._parse_numeric(record.IM_BEDROOM) or ''),
+                    "Bathrooms": str(self._parse_numeric(record.IM_BATHRM) or ''),
+                    "Fireplaces": str(self._parse_numeric(record.IM_FIREPLC) or ''),
+                    "First Floor Sq Ft": str(self._parse_numeric(record.IM_1ST_SQF) or ''),
+                    "Second Floor Sq Ft": str(self._parse_numeric(record.IM_2ND_SQF) or ''),
+                    "Basement Sq Ft": str(self._parse_numeric(record.IM_BAS_SQF) or ''),
+                    "Attic Sq Ft": str(self._parse_numeric(record.IM_ATT_SQF) or ''),
+                    "Total Sq Ft": str(self._parse_numeric(record.IM_TOT_SQF) or ''),
+                    "Siding": str(record.IM_SIDING).strip(),
+                    "Roofing": str(record.IM_ROOFING).strip(),
+                    "Heating System 1": str(record.IM_HEAT_1).strip(),
+                    "Heating System 2": str(record.IM_HEAT_2).strip(),
+                    "Heating System 3": str(record.IM_HEAT_3).strip(),
+                    "Improvement Value": str(self._parse_numeric(record.IM_EXT_VAL) or ''),
+                    "Garage 1 Sq Ft": str(self._parse_numeric(record.IM_GAR1_SF) or ''),
+                    "Garage 2 Sq Ft": str(self._parse_numeric(record.IM_GAR2_SF) or '')
+                }
+
+                # Add description from IM_DWELL_N
+                desc_map = {"D": "Residential dwelling", "C": "Commercial", "M": "Manufactured housing"}
+                dwell_code = str(record.IM_DWELL_N).strip()
+                improvement["Description"] = desc_map.get(dwell_code, dwell_code)
+                
+                # Remove empty values
+                improvement = {k: v for k, v in improvement.items() if v and v.strip()}
+                
+                # Add to lookup dictionary
+                if parcel_id not in improvements_lookup:
+                    improvements_lookup[parcel_id] = []
+                improvements_lookup[parcel_id].append(improvement)
+            
+            table.close()
+            
+        except Exception as e:
+            logger.error(f"Error loading improvements lookup: {e}")
+        
+        return improvements_lookup
     
     def _process_improvements(self):
         """Process the improvements file (PCIMPC00.DBF)."""
@@ -904,6 +935,8 @@ class TetonCountyDataProcessor:
         except (ValueError, TypeError):
             return None
     
+    # Removed _ensure_column
+    
     def manual_download_instructions(self):
         """Print instructions for manual download."""
         logger.info("=" * 60)
@@ -973,52 +1006,7 @@ class TetonCountyDataProcessor:
         except Exception as e:
             logger.error(f"✗ Error accessing item info: {e}")
     
-    def create_api_index(self):
-        """Create a JSON index file for the API to quickly look up parcels."""
-        logger.info("Creating API index...")
-        
-        conn = sqlite3.connect(self.database_path)
-        cursor = conn.cursor()
-        
-        # Get all parcels with basic info
-        cursor.execute('''
-            SELECT 
-                county_parcel_id,
-                owner_name,
-                physical_address,
-                total_value,
-                total_acres,
-                last_updated
-            FROM parcels
-            ORDER BY county_parcel_id
-        ''')
-        
-        parcels = []
-        for row in cursor.fetchall():
-            parcels.append({
-                'county_parcel_id': row[0],
-                'owner_name': row[1],
-                'physical_address': row[2],
-                'total_value': row[3],
-                'total_acres': row[4],
-                'last_updated': row[5]
-            })
-        
-        # Save to JSON file
-        index_path = self.processed_dir / "parcel_index.json"
-        with open(index_path, 'w') as f:
-            json.dump({
-                'metadata': {
-                    'county': 'Teton County Idaho',
-                    'total_parcels': len(parcels),
-                    'last_updated': datetime.now().isoformat(),
-                    'source': 'Teton County Idaho GIS Database'
-                },
-                'parcels': parcels
-            }, f, indent=2)
-        
-        conn.close()
-        logger.info(f"Created API index with {len(parcels)} parcels")
+    # Removed create_api_index
     
     def run_full_process(self):
         """Run the complete download and processing pipeline."""
@@ -1034,7 +1022,7 @@ class TetonCountyDataProcessor:
         self.process_dbf_files()
         
         # Step 3: Create API index
-        self.create_api_index()
+        # self.create_api_index() # Removed
         
         logger.info("Pipeline completed successfully!")
         return True
@@ -1047,7 +1035,7 @@ def main():
     if any((processor.data_dir / f).exists() for f in processor.expected_files):
         logger.info("Found existing DBF files, processing only...")
         processor.process_dbf_files()
-        processor.create_api_index()
+        # processor.create_api_index() # Removed
     else:
         # Run full pipeline
         processor.run_full_process()

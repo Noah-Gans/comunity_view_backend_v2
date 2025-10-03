@@ -5,11 +5,15 @@ from typing import Dict, Optional, List
 import time
 import re
 import json
+import logging
+
+# Setup logger for this module
+logger = logging.getLogger(__name__)
 
 def scrape_tax(url: str, county: str = None) -> Dict:
     """Scrape tax information from Sublette County Terra GIS system."""
     try:
-        print(f"[SUBLETTE_TAX] Scraping {county} URL: {url}")
+        logger.info(f"(Sublette County WY Tax) Starting Sublette County WY tax scrape for {county}")
         start_time = time.time()
         
         # Create a session to maintain cookies
@@ -26,37 +30,34 @@ def scrape_tax(url: str, county: str = None) -> Dict:
         }
         
         # Fetch the tax page
-        print(f"[SUBLETTE_TAX] Fetching tax page")
+        logger.debug(f"(Sublette County WY Tax) Fetching tax page")
         response = session.get(url, timeout=15, headers=headers)
         response.raise_for_status()
         
         fetch_time = time.time() - start_time
-        print(f"[SUBLETTE_TAX] Fetch time: {fetch_time:.2f}s")
+        logger.debug(f"(Sublette County WY Tax) Fetch time: {fetch_time:.2f}s")
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Write HTML file for debugging
-        debug_filename = f'sublette_tax_{county}_{int(time.time())}.html'
-        with open(debug_filename, 'w', encoding='utf-8') as f:
-            f.write(response.text)
-        print(f"[SUBLETTE_TAX] Debug file saved: {debug_filename}")
+        
         
         # Extract tax data
         tax_data = extract_sublette_tax_data(soup, county)
         
         total_time = time.time() - start_time
-        print(f"[SUBLETTE_TAX] Total time: {total_time:.2f}s")
+        logger.info(f"(Sublette County WY Tax) Sublette County WY tax scrape completed in {total_time:.2f}s for {county}")
         
         return tax_data
         
     except Exception as e:
-        print(f"[SUBLETTE_TAX] Error: {e}")
+        logger.error(f"(Sublette County WY Tax) Error: {e}")
         return {"error": str(e), "source": f"sublette_tax_{county}"}
 
 def extract_sublette_tax_data(soup: BeautifulSoup, county: str) -> Dict:
     """Extract tax data from Sublette County Terra GIS HTML structure."""
     try:
-        print(f"[SUBLETTE_TAX] Extracting data for {county}")
+        logger.debug(f"(Sublette County WY Tax) Extracting data for {county}")
         
         # Initialize tax data structure
         tax_data = {
@@ -80,10 +81,10 @@ def extract_sublette_tax_data(soup: BeautifulSoup, county: str) -> Dict:
         # Find the parcel information table
         parcel_table = soup.find('table', class_='parcelDetail')
         if not parcel_table:
-            print(f"[SUBLETTE_TAX] Parcel table not found")
+            logger.debug(f"(Sublette County WY Tax) Parcel table not found")
             return tax_data
         
-        print(f"[SUBLETTE_TAX] Found parcel table")
+        logger.debug(f"(Sublette County WY Tax) Found parcel table")
         
         # Extract basic parcel information from the first row
         first_row = parcel_table.find('tr')
@@ -97,26 +98,26 @@ def extract_sublette_tax_data(soup: BeautifulSoup, county: str) -> Dict:
                 tax_id_match = re.search(r'Tax\s+ID:\s*([^\s]+)', first_cell_text)
                 if tax_id_match:
                     tax_data["tax_id"] = tax_id_match.group(1)
-                    print(f"[SUBLETTE_TAX] Found tax ID: {tax_data['tax_id']}")
+                    logger.debug(f"(Sublette County WY Tax) Found tax ID: {tax_data['tax_id']}")
                 
                 # Extract Account Number
                 account_match = re.search(r'Account:\s*([^\s]+)', first_cell_text)
                 if account_match:
                     tax_data["account_number"] = account_match.group(1)
-                    print(f"[SUBLETTE_TAX] Found account: {tax_data['account_number']}")
+                    logger.debug(f"(Sublette County WY Tax) Found account: {tax_data['account_number']}")
                 
                 # Extract Tax Types
                 tax_types_match = re.search(r'Tax Type\(s\).*?:\s*([A-Z,\s]+)', first_cell_text)
                 if tax_types_match:
                     tax_data["tax_types"] = tax_types_match.group(1).strip()
-                    print(f"[SUBLETTE_TAX] Found tax types: {tax_data['tax_types']}")
+                    logger.debug(f"(Sublette County WY Tax) Found tax types: {tax_data['tax_types']}")
                 
                 # Second cell: Current Year
                 second_cell_text = cells[1].get_text()
                 year_match = re.search(r'Current Year:\s*(\d{4})', second_cell_text)
                 if year_match:
                     tax_data["current_year"] = year_match.group(1)
-                    print(f"[SUBLETTE_TAX] Found current year: {tax_data['current_year']}")
+                    logger.debug(f"(Sublette County WY Tax) Found current year: {tax_data['current_year']}")
                 
                 # Third cell: District and Mill Levy
                 third_cell_text = cells[2].get_text()
@@ -129,71 +130,71 @@ def extract_sublette_tax_data(soup: BeautifulSoup, county: str) -> Dict:
                         tax_data["district"] = f"{district_num} {district_name}"
                     else:
                         tax_data["district"] = district_num
-                    print(f"[SUBLETTE_TAX] Found district: {tax_data['district']}")
+                    logger.debug(f"(Sublette County WY Tax) Found district: {tax_data['district']}")
                 
                 mill_levy_match = re.search(r'Mill Levy:\s*([\d.]+)', third_cell_text)
                 if mill_levy_match:
                     tax_data["mill_levy"] = mill_levy_match.group(1)
-                    print(f"[SUBLETTE_TAX] Found mill levy: {tax_data['mill_levy']}")
+                    logger.debug(f"(Sublette County WY Tax) Found mill levy: {tax_data['mill_levy']}")
         
         # Extract owner information from second row
         rows = parcel_table.find_all('tr')
-        print(f"[SUBLETTE_TAX] Found {len(rows)} rows in parcel table")
+        logger.debug(f"(Sublette County WY Tax) Found {len(rows)} rows in parcel table")
         
         if len(rows) > 1:
             owner_row = rows[1]
             owner_cells = owner_row.find_all('td')
-            print(f"[SUBLETTE_TAX] Owner row has {len(owner_cells)} cells")
+            logger.debug(f"(Sublette County WY Tax) Owner row has {len(owner_cells)} cells")
             if len(owner_cells) >= 2:
                 owner_text = owner_cells[1].get_text(strip=True)
-                print(f"[SUBLETTE_TAX] Owner cell text: '{owner_text}'")
+                logger.debug(f"(Sublette County WY Tax) Owner cell text: '{owner_text}'")
                 if owner_text and owner_text != "Current Owner(s):":
                     tax_data["owner_name"] = owner_text
-                    print(f"[SUBLETTE_TAX] Found owner: {tax_data['owner_name']}")
+                    logger.debug(f"(Sublette County WY Tax) Found owner: {tax_data['owner_name']}")
                 else:
-                    print(f"[SUBLETTE_TAX] Owner text was empty or label")
+                    logger.debug(f"(Sublette County WY Tax) Owner text was empty or label")
         
         # Extract mailing address from third row
         if len(rows) > 2:
             mailing_row = rows[2]
             mailing_cells = mailing_row.find_all('td')
-            print(f"[SUBLETTE_TAX] Mailing row has {len(mailing_cells)} cells")
+            logger.debug(f"(Sublette County WY Tax) Mailing row has {len(mailing_cells)} cells")
             if len(mailing_cells) >= 2:
                 mailing_text = mailing_cells[1].get_text(strip=True)
-                print(f"[SUBLETTE_TAX] Mailing cell text: '{mailing_text}'")
+                logger.debug(f"(Sublette County WY Tax) Mailing cell text: '{mailing_text}'")
                 if mailing_text and mailing_text != "Mailing Address:":
                     tax_data["mailing_address"] = mailing_text
-                    print(f"[SUBLETTE_TAX] Found mailing address: {tax_data['mailing_address']}")
+                    logger.debug(f"(Sublette County WY Tax) Found mailing address: {tax_data['mailing_address']}")
                 else:
-                    print(f"[SUBLETTE_TAX] Mailing text was empty or label")
+                    logger.debug(f"(Sublette County WY Tax) Mailing text was empty or label")
         
         # Extract street address from fourth row
         if len(rows) > 3:
             street_row = rows[3]
             street_cells = street_row.find_all('td')
-            print(f"[SUBLETTE_TAX] Street row has {len(street_cells)} cells")
+            logger.debug(f"(Sublette County WY Tax) Street row has {len(street_cells)} cells")
             if len(street_cells) >= 2:
                 street_text = street_cells[1].get_text(strip=True)
-                print(f"[SUBLETTE_TAX] Street cell text: '{street_text}'")
+                logger.debug(f"(Sublette County WY Tax) Street cell text: '{street_text}'")
                 if street_text and street_text != "Street Address:":
                     tax_data["street_address"] = street_text
-                    print(f"[SUBLETTE_TAX] Found street address: {tax_data['street_address']}")
+                    logger.debug(f"(Sublette County WY Tax) Found street address: {tax_data['street_address']}")
                 else:
-                    print(f"[SUBLETTE_TAX] Street text was empty or label")
+                    logger.debug(f"(Sublette County WY Tax) Street text was empty or label")
         
         # Extract legal description from fifth row
         if len(rows) > 4:
             legal_row = rows[4]
             legal_cells = legal_row.find_all('td')
-            print(f"[SUBLETTE_TAX] Legal row has {len(legal_cells)} cells")
+            logger.debug(f"(Sublette County WY Tax) Legal row has {len(legal_cells)} cells")
             if len(legal_cells) >= 2:
                 legal_text = legal_cells[1].get_text(strip=True)
-                print(f"[SUBLETTE_TAX] Legal cell text: '{legal_text}'")
+                logger.debug(f"(Sublette County WY Tax) Legal cell text: '{legal_text}'")
                 if legal_text and legal_text != "Legal Description:":
                     tax_data["legal_description"] = legal_text
-                    print(f"[SUBLETTE_TAX] Found legal description: {tax_data['legal_description']}")
+                    logger.debug(f"(Sublette County WY Tax) Found legal description: {tax_data['legal_description']}")
                 else:
-                    print(f"[SUBLETTE_TAX] Legal text was empty or label")
+                    logger.debug(f"(Sublette County WY Tax) Legal text was empty or label")
         
         # Extract current year tax information
         current_taxes = extract_current_taxes(soup, county)
@@ -204,27 +205,27 @@ def extract_sublette_tax_data(soup: BeautifulSoup, county: str) -> Dict:
         tax_data["historical_taxes"] = historical_taxes
         
         # DEBUG: Print the complete extracted data
-        print(f"[SUBLETTE_TAX] ===== COMPLETE EXTRACTED DATA =====")
-        print(f"[SUBLETTE_TAX] County: {tax_data['county']}")
-        print(f"[SUBLETTE_TAX] Tax ID: {tax_data['tax_id']}")
-        print(f"[SUBLETTE_TAX] Account Number: {tax_data['account_number']}")
-        print(f"[SUBLETTE_TAX] Tax Types: {tax_data['tax_types']}")
-        print(f"[SUBLETTE_TAX] Current Year: {tax_data['current_year']}")
-        print(f"[SUBLETTE_TAX] District: {tax_data['district']}")
-        print(f"[SUBLETTE_TAX] Mill Levy: {tax_data['mill_levy']}")
-        print(f"[SUBLETTE_TAX] Owner Name: {tax_data['owner_name']}")
-        print(f"[SUBLETTE_TAX] Mailing Address: {tax_data['mailing_address']}")
-        print(f"[SUBLETTE_TAX] Street Address: {tax_data['street_address']}")
-        print(f"[SUBLETTE_TAX] Legal Description: {tax_data['legal_description']}")
-        print(f"[SUBLETTE_TAX] Current Taxes: {tax_data['current_taxes']}")
-        print(f"[SUBLETTE_TAX] Historical Taxes Count: {len(tax_data['historical_taxes'])}")
-        print(f"[SUBLETTE_TAX] ===== END EXTRACTED DATA =====")
+        logger.debug(f"(Sublette County WY Tax) ===== COMPLETE EXTRACTED DATA =====")
+        logger.debug(f"(Sublette County WY Tax) County: {tax_data['county']}")
+        logger.debug(f"(Sublette County WY Tax) Tax ID: {tax_data['tax_id']}")
+        logger.debug(f"(Sublette County WY Tax) Account Number: {tax_data['account_number']}")
+        logger.debug(f"(Sublette County WY Tax) Tax Types: {tax_data['tax_types']}")
+        logger.debug(f"(Sublette County WY Tax) Current Year: {tax_data['current_year']}")
+        logger.debug(f"(Sublette County WY Tax) District: {tax_data['district']}")
+        logger.debug(f"(Sublette County WY Tax) Mill Levy: {tax_data['mill_levy']}")
+        logger.debug(f"(Sublette County WY Tax) Owner Name: {tax_data['owner_name']}")
+        logger.debug(f"(Sublette County WY Tax) Mailing Address: {tax_data['mailing_address']}")
+        logger.debug(f"(Sublette County WY Tax) Street Address: {tax_data['street_address']}")
+        logger.debug(f"(Sublette County WY Tax) Legal Description: {tax_data['legal_description']}")
+        logger.debug(f"(Sublette County WY Tax) Current Taxes: {tax_data['current_taxes']}")
+        logger.debug(f"(Sublette County WY Tax) Historical Taxes Count: {len(tax_data['historical_taxes'])}")
+        logger.debug(f"(Sublette County WY Tax) ===== END EXTRACTED DATA =====")
         
-        print(f"[SUBLETTE_TAX] Extracted data: {tax_data}")
+        logger.debug(f"(Sublette County WY Tax) Extracted data successfully")
         return tax_data
         
     except Exception as e:
-        print(f"[SUBLETTE_TAX] Error extracting data: {str(e)}")
+        logger.error(f"(Sublette County WY Tax) Error extracting data: {str(e)}")
         return {
             "county": county.replace("_", " ").title(),
             "error": f"Data extraction failed: {str(e)}",
@@ -235,17 +236,17 @@ def extract_sublette_tax_data(soup: BeautifulSoup, county: str) -> Dict:
 def extract_current_taxes(soup: BeautifulSoup, county: str) -> Dict:
     """Extract current year tax information."""
     try:
-        print(f"[SUBLETTE_TAX] Extracting current taxes")
+        logger.debug(f"(Sublette County WY Tax) Extracting current taxes")
         
         current_taxes = {}
         
         # Find the current year taxes table
         history_table = soup.find('table', class_='history')
         if not history_table:
-            print(f"[SUBLETTE_TAX] History table not found")
+            logger.debug(f"(Sublette County WY Tax) History table not found")
             return current_taxes
         
-        print(f"[SUBLETTE_TAX] Found history table")
+        logger.debug(f"(Sublette County WY Tax) Found history table")
         
         # Look for the "CURRENT YEAR TAXES" section
         rows = history_table.find_all('tr')
@@ -285,26 +286,26 @@ def extract_current_taxes(soup: BeautifulSoup, county: str) -> Dict:
                         }
                     }
                     
-                    print(f"[SUBLETTE_TAX] Extracted current taxes: {current_taxes}")
+                    logger.debug(f"(Sublette County WY Tax) Extracted current taxes: {current_taxes}")
                     break
         
         return current_taxes
         
     except Exception as e:
-        print(f"[SUBLETTE_TAX] Error extracting current taxes: {str(e)}")
+        logger.error(f"(Sublette County WY Tax) Error extracting current taxes: {str(e)}")
         return {}
 
 def extract_historical_taxes(soup: BeautifulSoup, county: str) -> List[Dict]:
     """Extract historical tax information with proper payment structure."""
     try:
-        print(f"[SUBLETTE_TAX] Extracting historical taxes")
+        logger.debug(f"(Sublette County WY Tax) Extracting historical taxes")
         
         historical_taxes = []
         
         # Find the history table
         history_table = soup.find('table', class_='history')
         if not history_table:
-            print(f"[SUBLETTE_TAX] History table not found")
+            logger.debug(f"(Sublette County WY Tax) History table not found")
             return historical_taxes
         
         # Find all rows in the history section
@@ -392,11 +393,11 @@ def extract_historical_taxes(soup: BeautifulSoup, county: str) -> List[Dict]:
                             }
                         })
         
-        print(f"[SUBLETTE_TAX] Extracted {len(historical_taxes)} historical records")
+        logger.debug(f"(Sublette County WY Tax) Extracted {len(historical_taxes)} historical records")
         return historical_taxes
         
     except Exception as e:
-        print(f"[SUBLETTE_TAX] Error extracting historical taxes: {str(e)}")
+        logger.error(f"(Sublette County WY Tax) Error extracting historical taxes: {str(e)}")
         return []
 
 def clean_amount(amount_str: str) -> Optional[float]:
