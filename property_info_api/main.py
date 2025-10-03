@@ -249,6 +249,11 @@ async def scrape_property_stream(request: ScrapeRequest):
     Stream property information: send cached data first, then fresh scraped data.
     Returns Server-Sent Events (SSE) for real-time updates.
     """
+    # Add timing
+    import time
+    start_time = time.time()
+    logger.info(f"⏰ STREAM START: {start_time}")
+    
     async def event_generator():
         try:
             # Step 2 & 3: Query DB and send cached data immediately
@@ -275,6 +280,11 @@ async def scrape_property_stream(request: ScrapeRequest):
                         county_links=raw_data.get("county_links") or {}
                     )
 
+                    # Add timing before first yield
+                    cached_time = time.time()
+                    elapsed = cached_time - start_time
+                    logger.info(f"⏰ FIRST YIELD (cached): {cached_time} - Elapsed: {elapsed:.3f}s")
+                    
                     # Send only the inner 'data' part (remove outer wrapper)
                     yield f"data: {json.dumps({'status': 'cached', 'data': cached_response['data']})}\n\n"
             
@@ -333,14 +343,25 @@ async def scrape_property_stream(request: ScrapeRequest):
                 county_links=links
             )
             
+            # Add timing before second yield
+            fresh_time = time.time()
+            elapsed = fresh_time - start_time
+            logger.info(f"⏰ SECOND YIELD (fresh): {fresh_time} - Elapsed: {elapsed:.3f}s")
+            
             # Send only the inner 'data' part (remove outer wrapper)
             yield f"data: {json.dumps({'status': 'fresh', 'data': fresh_response['data']})}\n\n"
             
             # Signal completion
+            complete_time = time.time()
+            elapsed = complete_time - start_time
+            logger.info(f"⏰ THIRD YIELD (complete): {complete_time} - Elapsed: {elapsed:.3f}s")
             logger.info("(API) Stream completed successfully")
             yield f"data: {json.dumps({'status': 'complete'})}\n\n"
             
         except Exception as e:
+            error_time = time.time()
+            elapsed = error_time - start_time
+            logger.error(f"⏰ ERROR at {error_time} - Elapsed: {elapsed:.3f}s")
             logger.error(f"Stream error: {e}")
             yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
