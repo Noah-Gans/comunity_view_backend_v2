@@ -13,19 +13,19 @@ def start_instances():
     processes = []
     ports = [8001, 8002, 8003]  # Three instances
     
-    # Don't change directory - run from root like you normally do
-    # script_dir = os.path.dirname(os.path.abspath(__file__))
-    # os.chdir(script_dir)
+    # Change to the property_info_api directory (needed for imports)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
     
     try:
         for port in ports:
             print(f"Starting FastAPI instance on port {port}")
             process = subprocess.Popen([
-                "uvicorn", "property_info_api.main:app",  # Changed this line
+                "uvicorn", "main:app",  # Back to main:app since we're in the directory
                 "--host", "0.0.0.0", 
                 "--port", str(port),
                 "--log-level", "info"
-            ])
+            ], env={**os.environ, 'PYTHONPATH': os.path.dirname(script_dir)})  # Add parent directory to Python path
             processes.append(process)
             time.sleep(2)  # Give each instance time to start
         

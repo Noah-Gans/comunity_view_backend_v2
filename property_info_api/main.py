@@ -293,7 +293,16 @@ async def scrape_property_stream(request: ScrapeRequest):
                     )
                     
                     logger.info(f"📤 DEBUG: Cached response prepared - has data: {'data' in cached_response if isinstance(cached_response, dict) else False}")
-                    yield f"data: {json.dumps({'status': 'cached', 'data': cached_response['data']})}\n\n"
+                    logger.info(f"🔍 DEBUG: About to send cached response...")
+                    try:
+                        response_data = {'status': 'cached', 'data': cached_response['data']}
+                        response_json = json.dumps(response_data)
+                        logger.info(f"📤 DEBUG: Cached response JSON length: {len(response_json)}")
+                        logger.info(f"📤 DEBUG: Cached response sample: {response_json[:200]}...")
+                        yield f"data: {response_json}\n\n"
+                        logger.info(f"✅ DEBUG: Cached response sent successfully")
+                    except Exception as e:
+                        logger.error(f"❌ DEBUG: Error sending cached response: {e}")
                 else:
                     logger.info(f"❌ DEBUG: No cached data found")
             
@@ -354,7 +363,16 @@ async def scrape_property_stream(request: ScrapeRequest):
             )
             
             logger.info(f"📤 DEBUG: Fresh response prepared - has data: {'data' in fresh_response if isinstance(fresh_response, dict) else False}")
-            yield f"data: {json.dumps({'status': 'fresh', 'data': fresh_response['data']})}\n\n"
+            logger.info(f"🔍 DEBUG: About to send fresh response...")
+            try:
+                response_data = {'status': 'fresh', 'data': fresh_response['data']}
+                response_json = json.dumps(response_data)
+                logger.info(f"📤 DEBUG: Fresh response JSON length: {len(response_json)}")
+                logger.info(f"📤 DEBUG: Fresh response sample: {response_json[:200]}...")
+                yield f"data: {response_json}\n\n"
+                logger.info(f"✅ DEBUG: Fresh response sent successfully")
+            except Exception as e:
+                logger.error(f"❌ DEBUG: Error sending fresh response: {e}")
             
             # Signal completion
             yield f"data: {json.dumps({'status': 'complete'})}\n\n"
