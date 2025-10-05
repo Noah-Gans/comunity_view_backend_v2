@@ -18,6 +18,10 @@ class DataStandardizer:
     
     def _load_configs(self, config_dir):
         """Load all county configs."""
+        logger.info(f"🔍 DEBUG: Loading configs from: {config_dir}")
+        logger.info(f"🔍 DEBUG: Current working directory: {os.getcwd()}")
+        logger.info(f"🔍 DEBUG: Config dir exists: {os.path.exists(config_dir)}")
+        
         configs = {}
         if os.path.exists(config_dir):
             for config_file in os.listdir(config_dir):
@@ -25,7 +29,9 @@ class DataStandardizer:
                     county = config_file.replace('.json', '')
                     with open(f"{config_dir}/{config_file}") as f:
                         configs[county] = json.load(f)
-        logger.debug(f"Loaded {len(configs)} county configs from {config_dir}")
+            logger.info(f"✅ DEBUG: Loaded {len(configs)} county configs: {list(configs.keys())}")
+        else:
+            logger.error(f"❌ DEBUG: Config directory does not exist: {config_dir}")
         return configs
     
     def extract_field(self, field_name: str, data_sources: Dict) -> Optional[Any]:
