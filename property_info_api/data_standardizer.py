@@ -11,7 +11,13 @@ logger = logging.getLogger(__name__)
 class DataStandardizer:
     """Standardizes all API responses into a consistent format."""
     
-    def __init__(self, config_dir="property_info_api/configs", raw_data=None, county=None):
+    def __init__(self, config_dir=None, raw_data=None, county=None):
+        # Fix the config directory path issue
+        if config_dir is None:
+            # Get the directory where this file is located
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            config_dir = os.path.join(current_file_dir, "configs")
+        
         self.configs = self._load_configs(config_dir)
         self.raw_data = raw_data
         self.county = county  # Store county as instance attribute
