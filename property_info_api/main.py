@@ -258,9 +258,23 @@ async def scrape_property_stream(request: ScrapeRequest):
         try:
             # Step 2 & 3: Query DB and send cached data immediately
             if request.county_parcel_id:
+                # LOG: Check what's in database BEFORE querying
+                logger.info(f"🔍 BEFORE DB QUERY - Checking database for {request.county} / {request.county_parcel_id}")
+                
+                # Query the database
                 raw_data = get_latest_raw(request.county, request.county_parcel_id)
+                
                 if raw_data:
-                    logger.info("(API)DB HIT - sending cached data first")
+                    logger.info(f"✅ DB HIT - Found cached data for {request.county} / {request.county_parcel_id}")
+                    
+                    # LOG: Show what we found in the database
+                    logger.info(f"📊 DATABASE CONTENTS:")
+                    logger.info(f"   - Tax data exists: {bool(raw_data.get('tax_raw_data'))}")
+                    logger.info(f"   - Property data exists: {bool(raw_data.get('property_raw_data'))}")
+                    logger.info(f"   - Clerk data exists: {bool(raw_data.get('clerk_raw_data'))}")
+                    logger.info(f"   - Source: {raw_data.get('source', 'unknown')}")
+                    logger.info(f"   - Collected at: {raw_data.get('collected_at', 'unknown')}")
+                    
                     # Null-safe extraction for possibly-missing sections
                     tax_section = raw_data.get("tax_raw_data") or {}
                     prop_section = raw_data.get("property_raw_data") or {}
@@ -287,6 +301,8 @@ async def scrape_property_stream(request: ScrapeRequest):
                     
                     # Send only the inner 'data' part (remove outer wrapper)
                     yield f"data: {json.dumps({'status': 'cached', 'data': cached_response['data']})}\n\n"
+                else:
+                    logger.info(f"❌ DB MISS - No cached data found for {request.county} / {request.county_parcel_id}")
             
             # Step 4: Scrape fresh data
             logger.info("(API) Onto Scraping fresh data")
@@ -323,8 +339,16 @@ async def scrape_property_stream(request: ScrapeRequest):
                     clerk_parser.scrape_clerk, links["clerk_field"], county=request.county
                 )
             
+            # LOG: Show what we scraped
+            logger.info(f"🔄 FRESH SCRAPED DATA:")
+            logger.info(f"   - Tax data scraped: {bool(raw_tax_data)}")
+            logger.info(f"   - Property data scraped: {bool(raw_property_data)}")
+            logger.info(f"   - Clerk data scraped: {bool(raw_clerk_data)}")
+            
             # Step 6: Update database with fresh data
             if request.county_parcel_id:
+                logger.info(f"💾 BEFORE DB UPDATE - About to save fresh data for {request.county} / {request.county_parcel_id}")
+                
                 await asyncio.to_thread(
                     save_raw, request.county, request.county_parcel_id, {
                         "tax_raw_data": raw_tax_data,
@@ -334,6 +358,22 @@ async def scrape_property_stream(request: ScrapeRequest):
                         "source": "api_scrape_refresh"
                     }
                 )
+                
+                logger.info(f"✅ AFTER DB UPDATE - Fresh data saved for {request.county} / {request.county_parcel_id}")
+                
+                # LOG: Verify the data was actually saved
+                logger.info(f"🔍 VERIFYING DB UPDATE - Re-querying database...")
+                verify_data = get_latest_raw(request.county, request.county_parcel_id)
+                if verify_data:
+                    logger.info(f"✅ VERIFICATION SUCCESS - Data confirmed in database")
+                    logger.info(f"   - Updated source: {verify_data.get('source', 'unknown')}")
+                    logger.info(f"   - Updated collected_at: {verify_data.get('collected_at', 'unknown')}")
+                    logger.info(f"   - Has tax data: {bool(verify_data.get('tax_raw_data'))}")
+                    logger.info(f"   - Has property data: {bool(verify_data.get('property_raw_data'))}")
+                    logger.info(f"   - Has clerk data: {bool(verify_data.get('clerk_raw_data'))}")
+                else:
+                    logger.error(f"❌ VERIFICATION FAILED - No data found after save!")
+                
                 logger.info("(API) Updated database with fresh data")
             
             # Step 5: Send fresh data to client
