@@ -159,6 +159,36 @@ async def scrape_property_info(request: ScrapeRequest):
                 if raw_data.get("clerk_raw_data"):
                     clerk_data = raw_data["clerk_raw_data"].get("clerk_data")
                 
+                # For cached data:
+                logger.info(f"🔍 DEBUG: DataStandardizer input - CACHED:")
+                if tax_data:
+                    logger.info(f"   - tax_data type: {type(tax_data)}")
+                    logger.info(f"   - tax_data keys: {list(tax_data.keys())}")
+                    if 'current_tax' in tax_data:
+                        logger.info(f"   - tax_data.current_tax: {tax_data['current_tax']}")
+                    if 'general_info' in tax_data:
+                        logger.info(f"   - tax_data.general_info: {tax_data['general_info']}")
+                else:
+                    logger.info(f"   - tax_data: None")
+
+                if property_data:
+                    logger.info(f"   - property_data type: {type(property_data)}")
+                    logger.info(f"   - property_data keys: {list(property_data.keys())}")
+                    if 'owner_name' in property_data:
+                        logger.info(f"   - property_data.owner_name: {property_data['owner_name']}")
+                    if 'physical_address' in property_data:
+                        logger.info(f"   - property_data.physical_address: {property_data['physical_address']}")
+                else:
+                    logger.info(f"   - property_data: None")
+
+                if clerk_data:
+                    logger.info(f"   - clerk_data type: {type(clerk_data)}")
+                    logger.info(f"   - clerk_data keys: {list(clerk_data.keys())}")
+                    if 'records_count' in clerk_data:
+                        logger.info(f"   - clerk_data.records_count: {clerk_data['records_count']}")
+                else:
+                    logger.info(f"   - clerk_data: None")
+
                 standardized_response = DataStandardizer.standardize_api_response(
                     tax_data,
                     property_data,
@@ -228,6 +258,36 @@ async def scrape_property_info(request: ScrapeRequest):
                     raw_property_data = {"error": str(e), "source": f"property_scraper_{request.county}"}
         
         # Standardize all data into consistent format
+        # For fresh data:
+        logger.info(f"🔍 DEBUG: DataStandardizer input - FRESH:")
+        if raw_tax_data:
+            logger.info(f"   - raw_tax_data type: {type(raw_tax_data)}")
+            logger.info(f"   - raw_tax_data keys: {list(raw_tax_data.keys())}")
+            if 'current_tax' in raw_tax_data:
+                logger.info(f"   - raw_tax_data.current_tax: {raw_tax_data['current_tax']}")
+            if 'general_info' in raw_tax_data:
+                logger.info(f"   - raw_tax_data.general_info: {raw_tax_data['general_info']}")
+        else:
+            logger.info(f"   - raw_tax_data: None")
+
+        if raw_property_data:
+            logger.info(f"   - raw_property_data type: {type(raw_property_data)}")
+            logger.info(f"   - raw_property_data keys: {list(raw_property_data.keys())}")
+            if 'owner_name' in raw_property_data:
+                logger.info(f"   - raw_property_data.owner_name: {raw_property_data['owner_name']}")
+            if 'physical_address' in raw_property_data:
+                logger.info(f"   - raw_property_data.physical_address: {raw_property_data['physical_address']}")
+        else:
+            logger.info(f"   - raw_property_data: None")
+
+        if raw_clerk_data:
+            logger.info(f"   - raw_clerk_data type: {type(raw_clerk_data)}")
+            logger.info(f"   - raw_clerk_data keys: {list(raw_clerk_data.keys())}")
+            if 'records_count' in raw_clerk_data:
+                logger.info(f"   - raw_clerk_data.records_count: {raw_clerk_data['records_count']}")
+        else:
+            logger.info(f"   - raw_clerk_data: None")
+
         standardized_response = DataStandardizer.standardize_api_response(
             raw_tax_data, raw_property_data, raw_clerk_data, request.county, county_links=links if 'links' in locals() else None
         )
@@ -286,6 +346,36 @@ async def scrape_property_stream(request: ScrapeRequest):
                     else:
                         clerk_data = None
                         logger.info(f"❌ DEBUG: Clerk section is not dict: {type(clerk_section)}")
+
+                    # For cached data:
+                    logger.info(f"🔍 DEBUG: DataStandardizer input - CACHED:")
+                    if tax_data:
+                        logger.info(f"   - tax_data type: {type(tax_data)}")
+                        logger.info(f"   - tax_data keys: {list(tax_data.keys())}")
+                        if 'current_tax' in tax_data:
+                            logger.info(f"   - tax_data.current_tax: {tax_data['current_tax']}")
+                        if 'general_info' in tax_data:
+                            logger.info(f"   - tax_data.general_info: {tax_data['general_info']}")
+                    else:
+                        logger.info(f"   - tax_data: None")
+
+                    if property_data:
+                        logger.info(f"   - property_data type: {type(property_data)}")
+                        logger.info(f"   - property_data keys: {list(property_data.keys())}")
+                        if 'owner_name' in property_data:
+                            logger.info(f"   - property_data.owner_name: {property_data['owner_name']}")
+                        if 'physical_address' in property_data:
+                            logger.info(f"   - property_data.physical_address: {property_data['physical_address']}")
+                    else:
+                        logger.info(f"   - property_data: None")
+
+                    if clerk_data:
+                        logger.info(f"   - clerk_data type: {type(clerk_data)}")
+                        logger.info(f"   - clerk_data keys: {list(clerk_data.keys())}")
+                        if 'records_count' in clerk_data:
+                            logger.info(f"   - clerk_data.records_count: {clerk_data['records_count']}")
+                    else:
+                        logger.info(f"   - clerk_data: None")
 
                     cached_response = DataStandardizer.standardize_api_response(
                         tax_data, property_data, clerk_data,
@@ -362,6 +452,36 @@ async def scrape_property_stream(request: ScrapeRequest):
                 logger.info(f"💾 DEBUG: Database updated successfully")
             
             # Send fresh data to client
+            # For fresh data:
+            logger.info(f"🔍 DEBUG: DataStandardizer input - FRESH:")
+            if raw_tax_data:
+                logger.info(f"   - raw_tax_data type: {type(raw_tax_data)}")
+                logger.info(f"   - raw_tax_data keys: {list(raw_tax_data.keys())}")
+                if 'current_tax' in raw_tax_data:
+                    logger.info(f"   - raw_tax_data.current_tax: {raw_tax_data['current_tax']}")
+                if 'general_info' in raw_tax_data:
+                    logger.info(f"   - raw_tax_data.general_info: {raw_tax_data['general_info']}")
+            else:
+                logger.info(f"   - raw_tax_data: None")
+
+            if raw_property_data:
+                logger.info(f"   - raw_property_data type: {type(raw_property_data)}")
+                logger.info(f"   - raw_property_data keys: {list(raw_property_data.keys())}")
+                if 'owner_name' in raw_property_data:
+                    logger.info(f"   - raw_property_data.owner_name: {raw_property_data['owner_name']}")
+                if 'physical_address' in raw_property_data:
+                    logger.info(f"   - raw_property_data.physical_address: {raw_property_data['physical_address']}")
+            else:
+                logger.info(f"   - raw_property_data: None")
+
+            if raw_clerk_data:
+                logger.info(f"   - raw_clerk_data type: {type(raw_clerk_data)}")
+                logger.info(f"   - raw_clerk_data keys: {list(raw_clerk_data.keys())}")
+                if 'records_count' in raw_clerk_data:
+                    logger.info(f"   - raw_clerk_data.records_count: {raw_clerk_data['records_count']}")
+            else:
+                logger.info(f"   - raw_clerk_data: None")
+
             fresh_response = DataStandardizer.standardize_api_response(
                 raw_tax_data, raw_property_data, raw_clerk_data,
                 request.county,
