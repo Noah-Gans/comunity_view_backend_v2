@@ -275,6 +275,20 @@ async def scrape_property_stream(request: ScrapeRequest):
                     logger.info(f"   - Source: {raw_data.get('source', 'unknown')}")
                     logger.info(f"   - Collected at: {raw_data.get('collected_at', 'unknown')}")
                     
+                    # Add this right after we get raw_data from the database:
+                    logger.info(f"🔍 RAW_DATA STRUCTURE FROM DATABASE:")
+                    logger.info(f"   - raw_data type: {type(raw_data)}")
+                    logger.info(f"   - raw_data keys: {list(raw_data.keys()) if isinstance(raw_data, dict) else 'Not a dict'}")
+                    logger.info(f"   - tax_raw_data exists: {'tax_raw_data' in raw_data}")
+                    logger.info(f"   - property_raw_data exists: {'property_raw_data' in raw_data}")
+                    logger.info(f"   - clerk_raw_data exists: {'clerk_raw_data' in raw_data}")
+                    if 'tax_raw_data' in raw_data:
+                        logger.info(f"   - tax_raw_data type: {type(raw_data['tax_raw_data'])}")
+                    if 'property_raw_data' in raw_data:
+                        logger.info(f"   - property_raw_data type: {type(raw_data['property_raw_data'])}")
+                    if 'clerk_raw_data' in raw_data:
+                        logger.info(f"   - clerk_raw_data type: {type(raw_data['clerk_raw_data'])}")
+                    
                     # Null-safe extraction for possibly-missing sections
                     tax_section = raw_data.get("tax_raw_data") or {}
                     prop_section = raw_data.get("property_raw_data") or {}
