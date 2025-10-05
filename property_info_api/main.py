@@ -253,8 +253,9 @@ async def scrape_property_stream(request: ScrapeRequest):
         try:
             # Query DB and send cached data immediately
             if request.county_parcel_id:
-                logger.info(f"🔍 DEBUG: Starting request for {request.county} / {request.county_parcel_id}")
+                logger.info(f"🔍 DEBUG: About to query database for {request.county} / {request.county_parcel_id}")
                 raw_data = get_latest_raw(request.county, request.county_parcel_id)
+                logger.info(f"🔍 DEBUG: Database query result: {type(raw_data)} - {bool(raw_data)}")
                 
                 if raw_data:
                     logger.info(f"✅ DEBUG: Found cached data, source: {raw_data.get('source')}")
@@ -292,7 +293,12 @@ async def scrape_property_stream(request: ScrapeRequest):
                         county_links=raw_data.get("county_links") or {}
                     )
                     
-                    logger.info(f"📤 DEBUG: Cached response prepared - has data: {'data' in cached_response if isinstance(cached_response, dict) else False}")
+                    logger.info(f"🔍 DEBUG: DataStandardizer cached result:")
+                    logger.info(f"   - Response type: {type(cached_response)}")
+                    logger.info(f"   - Has 'data' key: {'data' in cached_response if isinstance(cached_response, dict) else False}")
+                    if isinstance(cached_response, dict) and 'data' in cached_response:
+                        data_sample = str(cached_response['data'])[:200]
+                        logger.info(f"   - Data sample: {data_sample}...")
                     logger.info(f"🔍 DEBUG: About to send cached response...")
                     try:
                         response_data = {'status': 'cached', 'data': cached_response['data']}
@@ -362,7 +368,17 @@ async def scrape_property_stream(request: ScrapeRequest):
                 county_links=links
             )
             
-            logger.info(f"📤 DEBUG: Fresh response prepared - has data: {'data' in fresh_response if isinstance(fresh_response, dict) else False}")
+            logger.info(f"🔍 DEBUG: Fresh scraped data summary:")
+            logger.info(f"   - raw_tax_data: {type(raw_tax_data)} - {bool(raw_tax_data)}")
+            logger.info(f"   - raw_property_data: {type(raw_property_data)} - {bool(raw_property_data)}")
+            logger.info(f"   - raw_clerk_data: {type(raw_clerk_data)} - {bool(raw_clerk_data)}")
+
+            logger.info(f"🔍 DEBUG: DataStandardizer fresh result:")
+            logger.info(f"   - Response type: {type(fresh_response)}")
+            logger.info(f"   - Has 'data' key: {'data' in fresh_response if isinstance(fresh_response, dict) else False}")
+            if isinstance(fresh_response, dict) and 'data' in fresh_response:
+                data_sample = str(fresh_response['data'])[:200]
+                logger.info(f"   - Data sample: {data_sample}...")
             logger.info(f"🔍 DEBUG: About to send fresh response...")
             try:
                 response_data = {'status': 'fresh', 'data': fresh_response['data']}

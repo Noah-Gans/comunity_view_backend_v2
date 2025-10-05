@@ -25,7 +25,7 @@ def start_instances():
                 "--host", "0.0.0.0", 
                 "--port", str(port),
                 "--log-level", "info"
-            ], env={**os.environ, 'PYTHONPATH': os.path.dirname(script_dir)})  # Add parent directory to Python path
+            ], env={**os.environ, 'PYTHONPATH': os.path.dirname(script_dir), 'INSTANCE_PORT': str(port)})  # Add port as env var
             processes.append(process)
             time.sleep(2)  # Give each instance time to start
         
