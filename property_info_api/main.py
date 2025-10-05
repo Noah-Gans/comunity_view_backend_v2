@@ -280,7 +280,15 @@ async def scrape_property_stream(request: ScrapeRequest):
                     prop_section = raw_data.get("property_raw_data") or {}
                     clerk_section = raw_data.get("clerk_raw_data") or {}
 
-                    tax_data = tax_section.get("tax_data") if isinstance(tax_section, dict) else None
+                    if isinstance(tax_section, dict):
+                        # Handle both formats: nested "tax_data" or direct format
+                        if "tax_data" in tax_section:
+                            tax_data = tax_section["tax_data"]  # Old format
+                        else:
+                            tax_data = tax_section  # New format (direct)
+                    else:
+                        tax_data = None
+
                     property_data = prop_section.get("property_data") if isinstance(prop_section, dict) else None
                     clerk_data = clerk_section.get("clerk_data") if isinstance(clerk_section, dict) else None
 
