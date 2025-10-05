@@ -303,8 +303,21 @@ async def scrape_property_stream(request: ScrapeRequest):
                     else:
                         tax_data = None
 
-                    property_data = prop_section.get("property_data") if isinstance(prop_section, dict) else None
-                    clerk_data = clerk_section.get("clerk_data") if isinstance(clerk_section, dict) else None
+                    if isinstance(prop_section, dict):
+                        if "property_data" in prop_section:
+                            property_data = prop_section["property_data"]  # Old format
+                        else:
+                            property_data = prop_section  # New format (direct)
+                    else:
+                        property_data = None
+
+                    if isinstance(clerk_section, dict):
+                        if "clerk_data" in clerk_section:
+                            clerk_data = clerk_section["clerk_data"]  # Old format
+                        else:
+                            clerk_data = clerk_section  # New format (direct)
+                    else:
+                        clerk_data = None
 
                     logger.info(f"(API) Tax data being passed to DataStandardizer: {tax_data}")
                     logger.info(f"(API) Property data being passed to DataStandardizer: {property_data}")
