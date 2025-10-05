@@ -5,7 +5,11 @@ from typing import Optional, Dict, Any
 from pathlib import Path
 
 def _get_db_path() -> str:
-    return os.getenv("DATABASE_PATH", "property_info_api/storage/property_data.db")
+    # Get the absolute path to this file's directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Build the path relative to this file's location
+    db_path = os.path.join(current_dir, "property_data.db")
+    return os.getenv("DATABASE_PATH", db_path)
 
 def init_db() -> None:
     # Create table if it doesn't exist
