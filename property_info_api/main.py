@@ -345,32 +345,86 @@ async def scrape_property_stream(request: ScrapeRequest):
             logger.info(f"   - Property data scraped: {bool(raw_property_data)}")
             logger.info(f"   - Clerk data scraped: {bool(raw_clerk_data)}")
             
+            # After scraping fresh data, add this detailed logging:
+            if raw_tax_data:
+                logger.info(f"💰 FRESH TAX DATA TO SAVE:")
+                logger.info(f"   - Type: {type(raw_tax_data)}")
+                logger.info(f"   - Keys: {list(raw_tax_data.keys()) if isinstance(raw_tax_data, dict) else 'Not a dict'}")
+                if isinstance(raw_tax_data, dict) and 'tax_data' in raw_tax_data:
+                    tax_inner = raw_tax_data['tax_data']
+                    logger.info(f"   - Tax ID: {tax_inner.get('tax_id', 'N/A')}")
+                    logger.info(f"   - Owner: {tax_inner.get('current_tax', {}).get('owner_name', 'N/A')}")
+                logger.info(f"   - Full tax data: {json.dumps(raw_tax_data, indent=2)[:500]}...")
+
+            if raw_property_data:
+                logger.info(f"🏠 FRESH PROPERTY DATA TO SAVE:")
+                logger.info(f"   - Type: {type(raw_property_data)}")
+                logger.info(f"   - Keys: {list(raw_property_data.keys()) if isinstance(raw_property_data, dict) else 'Not a dict'}")
+                if isinstance(raw_property_data, dict) and 'property_data' in raw_property_data:
+                    prop_inner = raw_property_data['property_data']
+                    logger.info(f"   - Parcel ID: {prop_inner.get('county_parcel_id', 'N/A')}")
+                    logger.info(f"   - Owner: {prop_inner.get('owner_name', 'N/A')}")
+                logger.info(f"   - Full property data: {json.dumps(raw_property_data, indent=2)[:500]}...")
+
+            if raw_clerk_data:
+                logger.info(f"📋 FRESH CLERK DATA TO SAVE:")
+                logger.info(f"   - Type: {type(raw_clerk_data)}")
+                logger.info(f"   - Keys: {list(raw_clerk_data.keys()) if isinstance(raw_clerk_data, dict) else 'Not a dict'}")
+                if isinstance(raw_clerk_data, dict) and 'clerk_data' in raw_clerk_data:
+                    clerk_inner = raw_clerk_data['clerk_data']
+                    logger.info(f"   - Records count: {clerk_inner.get('records_count', 0)}")
+
             # Step 6: Update database with fresh data
             if request.county_parcel_id:
                 logger.info(f"💾 BEFORE DB UPDATE - About to save fresh data for {request.county} / {request.county_parcel_id}")
                 
+                # Before saving to database, log what we're about to save:
+                save_bundle = {
+                    "tax_raw_data": raw_tax_data,
+                    "property_raw_data": raw_property_data,
+                    "clerk_raw_data": raw_clerk_data,
+                    "county_links": links,
+                    "source": "api_scrape_refresh"
+                }
+
+                logger.info(f"💾 BUNDLE TO SAVE TO DATABASE:")
+                logger.info(f"   - Tax data in bundle: {bool(save_bundle['tax_raw_data'])}")
+                logger.info(f"   - Property data in bundle: {bool(save_bundle['property_raw_data'])}")
+                logger.info(f"   - Clerk data in bundle: {bool(save_bundle['clerk_raw_data'])}")
+                logger.info(f"   - Bundle keys: {list(save_bundle.keys())}")
+
                 await asyncio.to_thread(
-                    save_raw, request.county, request.county_parcel_id, {
-                        "tax_raw_data": raw_tax_data,
-                        "property_raw_data": raw_property_data,
-                        "clerk_raw_data": raw_clerk_data,
-                        "county_links": links,
-                        "source": "api_scrape_refresh"
-                    }
+                    save_raw, request.county, request.county_parcel_id, save_bundle
                 )
                 
                 logger.info(f"✅ AFTER DB UPDATE - Fresh data saved for {request.county} / {request.county_parcel_id}")
                 
-                # LOG: Verify the data was actually saved
-                logger.info(f"🔍 VERIFYING DB UPDATE - Re-querying database...")
+                # After saving, add verification with detailed content:
                 verify_data = get_latest_raw(request.county, request.county_parcel_id)
                 if verify_data:
-                    logger.info(f"✅ VERIFICATION SUCCESS - Data confirmed in database")
-                    logger.info(f"   - Updated source: {verify_data.get('source', 'unknown')}")
-                    logger.info(f"   - Updated collected_at: {verify_data.get('collected_at', 'unknown')}")
-                    logger.info(f"   - Has tax data: {bool(verify_data.get('tax_raw_data'))}")
-                    logger.info(f"   - Has property data: {bool(verify_data.get('property_raw_data'))}")
-                    logger.info(f"   - Has clerk data: {bool(verify_data.get('clerk_raw_data'))}")
+                    logger.info(f"🔍 VERIFICATION - RETRIEVED DATA FROM DATABASE:")
+                    logger.info(f"   - Tax data retrieved: {bool(verify_data.get('tax_raw_data'))}")
+                    logger.info(f"   - Property data retrieved: {bool(verify_data.get('property_raw_data'))}")
+                    logger.info(f"   - Clerk data retrieved: {bool(verify_data.get('clerk_raw_data'))}")
+                    
+                    # Check the actual content of retrieved data
+                    if verify_data.get('tax_raw_data'):
+                        retrieved_tax = verify_data['tax_raw_data']
+                        logger.info(f"   - Retrieved tax type: {type(retrieved_tax)}")
+                        if isinstance(retrieved_tax, dict):
+                            logger.info(f"   - Retrieved tax keys: {list(retrieved_tax.keys())}")
+                            if 'tax_data' in retrieved_tax:
+                                tax_inner = retrieved_tax['tax_data']
+                                logger.info(f"   - Retrieved tax ID: {tax_inner.get('tax_id', 'N/A')}")
+                    
+                    if verify_data.get('property_raw_data'):
+                        retrieved_prop = verify_data['property_raw_data']
+                        logger.info(f"   - Retrieved property type: {type(retrieved_prop)}")
+                        if isinstance(retrieved_prop, dict):
+                            logger.info(f"   - Retrieved property keys: {list(retrieved_prop.keys())}")
+                            if 'property_data' in retrieved_prop:
+                                prop_inner = retrieved_prop['property_data']
+                                logger.info(f"   - Retrieved parcel ID: {prop_inner.get('county_parcel_id', 'N/A')}")
                 else:
                     logger.error(f"❌ VERIFICATION FAILED - No data found after save!")
                 
