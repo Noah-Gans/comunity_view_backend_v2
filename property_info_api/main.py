@@ -249,117 +249,52 @@ async def scrape_property_stream(request: ScrapeRequest):
     Stream property information: send cached data first, then fresh scraped data.
     Returns Server-Sent Events (SSE) for real-time updates.
     """
-    # Add timing
-    import time
-    start_time = time.time()
-    logger.info(f"⏰ STREAM START: {start_time}")
-    
     async def event_generator():
         try:
-            # Step 2 & 3: Query DB and send cached data immediately
+            # Query DB and send cached data immediately
             if request.county_parcel_id:
-                # LOG: Check what's in database BEFORE querying
-                logger.info(f"🔍 BEFORE DB QUERY - Checking database for {request.county} / {request.county_parcel_id}")
-                
-                # Query the database
                 raw_data = get_latest_raw(request.county, request.county_parcel_id)
                 
                 if raw_data:
-                    logger.info(f"✅ DB HIT - Found cached data for {request.county} / {request.county_parcel_id}")
+                    logger.info(f"Found cached data for {request.county} / {request.county_parcel_id}")
                     
-                    # LOG: Show what we found in the database
-                    logger.info(f"📊 DATABASE CONTENTS:")
-                    logger.info(f"   - Tax data exists: {bool(raw_data.get('tax_raw_data'))}")
-                    logger.info(f"   - Property data exists: {bool(raw_data.get('property_raw_data'))}")
-                    logger.info(f"   - Clerk data exists: {bool(raw_data.get('clerk_raw_data'))}")
-                    logger.info(f"   - Source: {raw_data.get('source', 'unknown')}")
-                    logger.info(f"   - Collected at: {raw_data.get('collected_at', 'unknown')}")
-                    
-                    # Add this right after we get raw_data from the database:
-                    logger.info(f"🔍 RAW_DATA STRUCTURE FROM DATABASE:")
-                    logger.info(f"   - raw_data type: {type(raw_data)}")
-                    logger.info(f"   - raw_data keys: {list(raw_data.keys()) if isinstance(raw_data, dict) else 'Not a dict'}")
-                    logger.info(f"   - tax_raw_data exists: {'tax_raw_data' in raw_data}")
-                    logger.info(f"   - property_raw_data exists: {'property_raw_data' in raw_data}")
-                    logger.info(f"   - clerk_raw_data exists: {'clerk_raw_data' in raw_data}")
-                    if 'tax_raw_data' in raw_data:
-                        logger.info(f"   - tax_raw_data type: {type(raw_data['tax_raw_data'])}")
-                    if 'property_raw_data' in raw_data:
-                        logger.info(f"   - property_raw_data type: {type(raw_data['property_raw_data'])}")
-                    if 'clerk_raw_data' in raw_data:
-                        logger.info(f"   - clerk_raw_data type: {type(raw_data['clerk_raw_data'])}")
-                    
-                    # Null-safe extraction for possibly-missing sections
+                    # Extract data with robust format handling
                     tax_section = raw_data.get("tax_raw_data") or {}
                     prop_section = raw_data.get("property_raw_data") or {}
                     clerk_section = raw_data.get("clerk_raw_data") or {}
 
+                    # Handle both nested and direct formats
                     if isinstance(tax_section, dict):
-                        # Handle both formats: nested "tax_data" or direct format
-                        if "tax_data" in tax_section:
-                            tax_data = tax_section["tax_data"]  # Old format
-                        else:
-                            tax_data = tax_section  # New format (direct)
+                        tax_data = tax_section.get("tax_data", tax_section)
                     else:
                         tax_data = None
 
                     if isinstance(prop_section, dict):
-                        if "property_data" in prop_section:
-                            property_data = prop_section["property_data"]  # Old format
-                        else:
-                            property_data = prop_section  # New format (direct)
+                        property_data = prop_section.get("property_data", prop_section)
                     else:
                         property_data = None
 
                     if isinstance(clerk_section, dict):
-                        if "clerk_data" in clerk_section:
-                            clerk_data = clerk_section["clerk_data"]  # Old format
-                        else:
-                            clerk_data = clerk_section  # New format (direct)
+                        clerk_data = clerk_section.get("clerk_data", clerk_section)
                     else:
                         clerk_data = None
-
-                    logger.info(f"(API) Tax data being passed to DataStandardizer: {tax_data}")
-                    logger.info(f"(API) Property data being passed to DataStandardizer: {property_data}")
-                    logger.info(f"(API) Clerk data being passed to DataStandardizer: {clerk_data}")
-
-                    logger.info(f"🔍 DATA BEING PASSED TO STANDARDIZER (cached):")
-                    logger.info(f"   - tax_data type: {type(tax_data)}")
-                    logger.info(f"   - tax_data keys: {list(tax_data.keys()) if isinstance(tax_data, dict) else 'Not a dict'}")
-                    logger.info(f"   - property_data type: {type(property_data)}")
-                    logger.info(f"   - property_data keys: {list(property_data.keys()) if isinstance(property_data, dict) else 'Not a dict'}")
-                    logger.info(f"   - clerk_data type: {type(clerk_data)}")
-                    logger.info(f"   - clerk_data keys: {list(clerk_data.keys()) if isinstance(clerk_data, dict) else 'Not a dict'}")
 
                     cached_response = DataStandardizer.standardize_api_response(
                         tax_data, property_data, clerk_data,
                         request.county,
                         county_links=raw_data.get("county_links") or {}
                     )
-
-                    logger.info(f"📤 STANDARDIZER RESPONSE (cached):")
-                    logger.info(f"   - Response type: {type(cached_response)}")
-                    logger.info(f"   - Has 'data' key: {'data' in cached_response if isinstance(cached_response, dict) else False}")
-                    if isinstance(cached_response, dict) and 'data' in cached_response:
-                        logger.info(f"   - Data keys: {list(cached_response['data'].keys())}")
-
-                    # Add timing before first yield
-                    cached_time = time.time()
-                    elapsed = cached_time - start_time
-                    logger.info(f"⏰ FIRST YIELD (cached): {cached_time} - Elapsed: {elapsed:.3f}s")
                     
-                    # Send only the inner 'data' part (remove outer wrapper)
                     yield f"data: {json.dumps({'status': 'cached', 'data': cached_response['data']})}\n\n"
                 else:
-                    logger.info(f"❌ DB MISS - No cached data found for {request.county} / {request.county_parcel_id}")
+                    logger.info(f"No cached data found for {request.county} / {request.county_parcel_id}")
             
-            # Step 4: Scrape fresh data
-            logger.info("(API) Onto Scraping fresh data")
+            # Scrape fresh data
             if request.county == "teton_county_id" and request.county_parcel_id:
-                logger.info("(API) Teton County Idaho - skipping fresh scrape (all data in database)")
-                # Skip to completion without updating database
+                logger.info("Teton County Idaho - skipping fresh scrape")
                 yield f"data: {json.dumps({'status': 'complete'})}\n\n"
                 return
+                
             links = construct_links(request.county, request.fields)
             
             # Scrape all sources
@@ -368,66 +303,24 @@ async def scrape_property_stream(request: ScrapeRequest):
             raw_clerk_data = None
             
             if "tax_field" in links:
-                logger.info(f"(API) Calling tax scraper")
                 raw_tax_data = await asyncio.to_thread(
                     tax_parser.scrape_tax, links["tax_field"], county=request.county
                 )
-                logger.debug(f"(API) Raw tax data: {json.dumps(raw_tax_data, indent=2, ensure_ascii=False)}")
             
             if "property_details_field" in links:
-                logger.info(f"(API) Calling property details scraper")
                 raw_property_data = await asyncio.to_thread(
                     property_details_parser.scrape_property_details,
                     links["property_details_field"], 
                     config={"county": request.county}
                 )
-                logger.debug(f"(API) Raw property data: {json.dumps(raw_property_data, indent=2, ensure_ascii=False)}")
+                
             if "clerk_field" in links:
-                logger.info(f"(API) Calling clerk scraper")
                 raw_clerk_data = await asyncio.to_thread(
                     clerk_parser.scrape_clerk, links["clerk_field"], county=request.county
                 )
             
-            # LOG: Show what we scraped
-            logger.info(f"🔄 FRESH SCRAPED DATA:")
-            logger.info(f"   - Tax data scraped: {bool(raw_tax_data)}")
-            logger.info(f"   - Property data scraped: {bool(raw_property_data)}")
-            logger.info(f"   - Clerk data scraped: {bool(raw_clerk_data)}")
-            
-            # After scraping fresh data, add this detailed logging:
-            if raw_tax_data:
-                logger.info(f"💰 FRESH TAX DATA TO SAVE:")
-                logger.info(f"   - Type: {type(raw_tax_data)}")
-                logger.info(f"   - Keys: {list(raw_tax_data.keys()) if isinstance(raw_tax_data, dict) else 'Not a dict'}")
-                if isinstance(raw_tax_data, dict) and 'tax_data' in raw_tax_data:
-                    tax_inner = raw_tax_data['tax_data']
-                    logger.info(f"   - Tax ID: {tax_inner.get('tax_id', 'N/A')}")
-                    logger.info(f"   - Owner: {tax_inner.get('current_tax', {}).get('owner_name', 'N/A')}")
-                logger.info(f"   - Full tax data: {json.dumps(raw_tax_data, indent=2)[:500]}...")
-
-            if raw_property_data:
-                logger.info(f"🏠 FRESH PROPERTY DATA TO SAVE:")
-                logger.info(f"   - Type: {type(raw_property_data)}")
-                logger.info(f"   - Keys: {list(raw_property_data.keys()) if isinstance(raw_property_data, dict) else 'Not a dict'}")
-                if isinstance(raw_property_data, dict) and 'property_data' in raw_property_data:
-                    prop_inner = raw_property_data['property_data']
-                    logger.info(f"   - Parcel ID: {prop_inner.get('county_parcel_id', 'N/A')}")
-                    logger.info(f"   - Owner: {prop_inner.get('owner_name', 'N/A')}")
-                logger.info(f"   - Full property data: {json.dumps(raw_property_data, indent=2)[:500]}...")
-
-            if raw_clerk_data:
-                logger.info(f"📋 FRESH CLERK DATA TO SAVE:")
-                logger.info(f"   - Type: {type(raw_clerk_data)}")
-                logger.info(f"   - Keys: {list(raw_clerk_data.keys()) if isinstance(raw_clerk_data, dict) else 'Not a dict'}")
-                if isinstance(raw_clerk_data, dict) and 'clerk_data' in raw_clerk_data:
-                    clerk_inner = raw_clerk_data['clerk_data']
-                    logger.info(f"   - Records count: {clerk_inner.get('records_count', 0)}")
-
-            # Step 6: Update database with fresh data
+            # Update database with fresh data
             if request.county_parcel_id:
-                logger.info(f"💾 BEFORE DB UPDATE - About to save fresh data for {request.county} / {request.county_parcel_id}")
-                
-                # Before saving to database, log what we're about to save:
                 save_bundle = {
                     "tax_raw_data": raw_tax_data,
                     "property_raw_data": raw_property_data,
@@ -435,76 +328,25 @@ async def scrape_property_stream(request: ScrapeRequest):
                     "county_links": links,
                     "source": "api_scrape_refresh"
                 }
-
-                logger.info(f"💾 BUNDLE TO SAVE TO DATABASE:")
-                logger.info(f"   - Tax data in bundle: {bool(save_bundle['tax_raw_data'])}")
-                logger.info(f"   - Property data in bundle: {bool(save_bundle['property_raw_data'])}")
-                logger.info(f"   - Clerk data in bundle: {bool(save_bundle['clerk_raw_data'])}")
-                logger.info(f"   - Bundle keys: {list(save_bundle.keys())}")
-
+                
                 await asyncio.to_thread(
                     save_raw, request.county, request.county_parcel_id, save_bundle
                 )
-                
-                logger.info(f"✅ AFTER DB UPDATE - Fresh data saved for {request.county} / {request.county_parcel_id}")
-                
-                # After saving, add verification with detailed content:
-                verify_data = get_latest_raw(request.county, request.county_parcel_id)
-                if verify_data:
-                    logger.info(f"🔍 VERIFICATION - RETRIEVED DATA FROM DATABASE:")
-                    logger.info(f"   - Tax data retrieved: {bool(verify_data.get('tax_raw_data'))}")
-                    logger.info(f"   - Property data retrieved: {bool(verify_data.get('property_raw_data'))}")
-                    logger.info(f"   - Clerk data retrieved: {bool(verify_data.get('clerk_raw_data'))}")
-                    
-                    # Check the actual content of retrieved data
-                    if verify_data.get('tax_raw_data'):
-                        retrieved_tax = verify_data['tax_raw_data']
-                        logger.info(f"   - Retrieved tax type: {type(retrieved_tax)}")
-                        if isinstance(retrieved_tax, dict):
-                            logger.info(f"   - Retrieved tax keys: {list(retrieved_tax.keys())}")
-                            if 'tax_data' in retrieved_tax:
-                                tax_inner = retrieved_tax['tax_data']
-                                logger.info(f"   - Retrieved tax ID: {tax_inner.get('tax_id', 'N/A')}")
-                    
-                    if verify_data.get('property_raw_data'):
-                        retrieved_prop = verify_data['property_raw_data']
-                        logger.info(f"   - Retrieved property type: {type(retrieved_prop)}")
-                        if isinstance(retrieved_prop, dict):
-                            logger.info(f"   - Retrieved property keys: {list(retrieved_prop.keys())}")
-                            if 'property_data' in retrieved_prop:
-                                prop_inner = retrieved_prop['property_data']
-                                logger.info(f"   - Retrieved parcel ID: {prop_inner.get('county_parcel_id', 'N/A')}")
-                else:
-                    logger.error(f"❌ VERIFICATION FAILED - No data found after save!")
-                
-                logger.info("(API) Updated database with fresh data")
+                logger.info(f"Updated database with fresh data for {request.county} / {request.county_parcel_id}")
             
-            # Step 5: Send fresh data to client
+            # Send fresh data to client
             fresh_response = DataStandardizer.standardize_api_response(
                 raw_tax_data, raw_property_data, raw_clerk_data,
                 request.county,
                 county_links=links
             )
             
-            # Add timing before second yield
-            fresh_time = time.time()
-            elapsed = fresh_time - start_time
-            logger.info(f"⏰ SECOND YIELD (fresh): {fresh_time} - Elapsed: {elapsed:.3f}s")
-            
-            # Send only the inner 'data' part (remove outer wrapper)
             yield f"data: {json.dumps({'status': 'fresh', 'data': fresh_response['data']})}\n\n"
             
             # Signal completion
-            complete_time = time.time()
-            elapsed = complete_time - start_time
-            logger.info(f"⏰ THIRD YIELD (complete): {complete_time} - Elapsed: {elapsed:.3f}s")
-            logger.info("(API) Stream completed successfully")
             yield f"data: {json.dumps({'status': 'complete'})}\n\n"
             
         except Exception as e:
-            error_time = time.time()
-            elapsed = error_time - start_time
-            logger.error(f"⏰ ERROR at {error_time} - Elapsed: {elapsed:.3f}s")
             logger.error(f"Stream error: {e}")
             yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
