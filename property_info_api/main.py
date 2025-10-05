@@ -296,11 +296,25 @@ async def scrape_property_stream(request: ScrapeRequest):
                     logger.info(f"(API) Property data being passed to DataStandardizer: {property_data}")
                     logger.info(f"(API) Clerk data being passed to DataStandardizer: {clerk_data}")
 
+                    logger.info(f"🔍 DATA BEING PASSED TO STANDARDIZER (cached):")
+                    logger.info(f"   - tax_data type: {type(tax_data)}")
+                    logger.info(f"   - tax_data keys: {list(tax_data.keys()) if isinstance(tax_data, dict) else 'Not a dict'}")
+                    logger.info(f"   - property_data type: {type(property_data)}")
+                    logger.info(f"   - property_data keys: {list(property_data.keys()) if isinstance(property_data, dict) else 'Not a dict'}")
+                    logger.info(f"   - clerk_data type: {type(clerk_data)}")
+                    logger.info(f"   - clerk_data keys: {list(clerk_data.keys()) if isinstance(clerk_data, dict) else 'Not a dict'}")
+
                     cached_response = DataStandardizer.standardize_api_response(
                         tax_data, property_data, clerk_data,
                         request.county,
                         county_links=raw_data.get("county_links") or {}
                     )
+
+                    logger.info(f"📤 STANDARDIZER RESPONSE (cached):")
+                    logger.info(f"   - Response type: {type(cached_response)}")
+                    logger.info(f"   - Has 'data' key: {'data' in cached_response if isinstance(cached_response, dict) else False}")
+                    if isinstance(cached_response, dict) and 'data' in cached_response:
+                        logger.info(f"   - Data keys: {list(cached_response['data'].keys())}")
 
                     # Add timing before first yield
                     cached_time = time.time()
