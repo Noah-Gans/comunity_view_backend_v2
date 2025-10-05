@@ -253,10 +253,11 @@ async def scrape_property_stream(request: ScrapeRequest):
         try:
             # Query DB and send cached data immediately
             if request.county_parcel_id:
+                logger.info(f"🔍 DEBUG: Starting request for {request.county} / {request.county_parcel_id}")
                 raw_data = get_latest_raw(request.county, request.county_parcel_id)
                 
                 if raw_data:
-                    logger.info(f"Found cached data for {request.county} / {request.county_parcel_id}")
+                    logger.info(f"✅ DEBUG: Found cached data, source: {raw_data.get('source')}")
                     
                     # Extract data with robust format handling
                     tax_section = raw_data.get("tax_raw_data") or {}
@@ -266,18 +267,24 @@ async def scrape_property_stream(request: ScrapeRequest):
                     # Handle both nested and direct formats
                     if isinstance(tax_section, dict):
                         tax_data = tax_section.get("tax_data", tax_section)
+                        logger.info(f"🔍 DEBUG: Tax data extracted - type: {type(tax_data)}, keys: {list(tax_data.keys()) if isinstance(tax_data, dict) else 'None'}")
                     else:
                         tax_data = None
+                        logger.info(f"❌ DEBUG: Tax section is not dict: {type(tax_section)}")
 
                     if isinstance(prop_section, dict):
                         property_data = prop_section.get("property_data", prop_section)
+                        logger.info(f"🔍 DEBUG: Property data extracted - type: {type(property_data)}, keys: {list(property_data.keys()) if isinstance(property_data, dict) else 'None'}")
                     else:
                         property_data = None
+                        logger.info(f"❌ DEBUG: Property section is not dict: {type(prop_section)}")
 
                     if isinstance(clerk_section, dict):
                         clerk_data = clerk_section.get("clerk_data", clerk_section)
+                        logger.info(f"🔍 DEBUG: Clerk data extracted - type: {type(clerk_data)}, keys: {list(clerk_data.keys()) if isinstance(clerk_data, dict) else 'None'}")
                     else:
                         clerk_data = None
+                        logger.info(f"❌ DEBUG: Clerk section is not dict: {type(clerk_section)}")
 
                     cached_response = DataStandardizer.standardize_api_response(
                         tax_data, property_data, clerk_data,
@@ -285,17 +292,19 @@ async def scrape_property_stream(request: ScrapeRequest):
                         county_links=raw_data.get("county_links") or {}
                     )
                     
+                    logger.info(f"📤 DEBUG: Cached response prepared - has data: {'data' in cached_response if isinstance(cached_response, dict) else False}")
                     yield f"data: {json.dumps({'status': 'cached', 'data': cached_response['data']})}\n\n"
                 else:
-                    logger.info(f"No cached data found for {request.county} / {request.county_parcel_id}")
+                    logger.info(f"❌ DEBUG: No cached data found")
             
             # Scrape fresh data
             if request.county == "teton_county_id" and request.county_parcel_id:
-                logger.info("Teton County Idaho - skipping fresh scrape")
+                logger.info("DEBUG: Teton County Idaho - skipping fresh scrape")
                 yield f"data: {json.dumps({'status': 'complete'})}\n\n"
                 return
                 
             links = construct_links(request.county, request.fields)
+            logger.info(f"🔍 DEBUG: Fresh scraping starting")
             
             # Scrape all sources
             raw_tax_data = None
@@ -306,6 +315,7 @@ async def scrape_property_stream(request: ScrapeRequest):
                 raw_tax_data = await asyncio.to_thread(
                     tax_parser.scrape_tax, links["tax_field"], county=request.county
                 )
+                logger.info(f"💰 DEBUG: Fresh tax data scraped - type: {type(raw_tax_data)}, keys: {list(raw_tax_data.keys()) if isinstance(raw_tax_data, dict) else 'None'}")
             
             if "property_details_field" in links:
                 raw_property_data = await asyncio.to_thread(
@@ -313,11 +323,13 @@ async def scrape_property_stream(request: ScrapeRequest):
                     links["property_details_field"], 
                     config={"county": request.county}
                 )
+                logger.info(f"🏠 DEBUG: Fresh property data scraped - type: {type(raw_property_data)}, keys: {list(raw_property_data.keys()) if isinstance(raw_property_data, dict) else 'None'}")
                 
             if "clerk_field" in links:
                 raw_clerk_data = await asyncio.to_thread(
                     clerk_parser.scrape_clerk, links["clerk_field"], county=request.county
                 )
+                logger.info(f"📋 DEBUG: Fresh clerk data scraped - type: {type(raw_clerk_data)}, keys: {list(raw_clerk_data.keys()) if isinstance(raw_clerk_data, dict) else 'None'}")
             
             # Update database with fresh data
             if request.county_parcel_id:
@@ -332,7 +344,7 @@ async def scrape_property_stream(request: ScrapeRequest):
                 await asyncio.to_thread(
                     save_raw, request.county, request.county_parcel_id, save_bundle
                 )
-                logger.info(f"Updated database with fresh data for {request.county} / {request.county_parcel_id}")
+                logger.info(f"💾 DEBUG: Database updated successfully")
             
             # Send fresh data to client
             fresh_response = DataStandardizer.standardize_api_response(
@@ -341,13 +353,14 @@ async def scrape_property_stream(request: ScrapeRequest):
                 county_links=links
             )
             
+            logger.info(f"📤 DEBUG: Fresh response prepared - has data: {'data' in fresh_response if isinstance(fresh_response, dict) else False}")
             yield f"data: {json.dumps({'status': 'fresh', 'data': fresh_response['data']})}\n\n"
             
             # Signal completion
             yield f"data: {json.dumps({'status': 'complete'})}\n\n"
             
         except Exception as e:
-            logger.error(f"Stream error: {e}")
+            logger.error(f"❌ DEBUG: Stream error: {e}")
             yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
     
     return StreamingResponse(event_generator(), media_type="text/event-stream")
