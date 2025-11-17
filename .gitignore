@@ -35,3 +35,8 @@ property_data.db
 tiles/
 *.mbtiles
 *.pmtiles
+
+# Large data files (too big for GitHub)
+pipelines/bulk_collector/scraped_data_download/*.jsonl
+pipelines/pmtiles/intermediate_data/**/*.geojson
+pipelines/pmtiles/final_parcels/**/*.geojson
