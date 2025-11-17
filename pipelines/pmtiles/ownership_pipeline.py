@@ -251,12 +251,31 @@ class OwnershipPipeline:
         # Determine validity
         is_valid = True
         
-        if abs(total_pct) >= 5:
+        # Check if existing counties changed too much (ignore new counties in total count)
+        existing_county_changes = []
+        for c in common_counties:
+            if previous_data[c]['features'] > 0:
+                pct_change = abs((current_data[c]['features'] - previous_data[c]['features']) / previous_data[c]['features'] * 100)
+                existing_county_changes.append((c, pct_change))
+        
+        # If we have new counties, that's expected - only validate existing counties
+        if new_counties:
+            if any(pct >= 5 for _, pct in existing_county_changes):
+                report.append("❌ FAILED: One or more existing counties changed by ≥5%")
+                report.append("   → Manual review required before proceeding")
+                for county, pct in existing_county_changes:
+                    if pct >= 5:
+                        report.append(f"   → {county}: {pct:.1f}% change")
+                is_valid = False
+            else:
+                report.append("✅ PASSED: New counties added, existing counties within expected range (<5%)")
+                report.append("   → Safe to proceed with upload and tile generation")
+        # If no new counties, validate total change
+        elif abs(total_pct) >= 5:
             report.append("❌ FAILED: Total feature count changed by 5% or more")
             report.append("   → Manual review required before proceeding")
             is_valid = False
-        elif any(abs((current_data[c]['features'] - previous_data[c]['features']) / previous_data[c]['features'] * 100) >= 5 
-                 for c in common_counties if previous_data[c]['features'] > 0):
+        elif any(pct >= 5 for _, pct in existing_county_changes):
             report.append("⚠️ WARNING: One or more counties changed by ≥5%")
             report.append("   → Recommend manual review before proceeding")
             is_valid = False
