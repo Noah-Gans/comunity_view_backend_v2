@@ -17,15 +17,20 @@ if [ ! -f "app.py" ]; then
     exit 1
 fi
 
-# Check if virtual environment exists
-if [ ! -d "venv" ]; then
+# Use project root venv if it exists, otherwise create one in service directory
+PROJECT_ROOT="$(cd "$(dirname "$SCRIPT_DIR")/../.." && pwd)"
+if [ -d "$PROJECT_ROOT/venv" ]; then
+    echo "🔧 Activating project root virtual environment..."
+    source "$PROJECT_ROOT/venv/bin/activate"
+elif [ ! -d "venv" ]; then
     echo "❌ Virtual environment not found. Creating one..."
     python3 -m venv venv
+    echo "🔧 Activating virtual environment..."
+    source venv/bin/activate
+else
+    echo "🔧 Activating virtual environment..."
+    source venv/bin/activate
 fi
-
-# Activate virtual environment
-echo "🔧 Activating virtual environment..."
-source venv/bin/activate
 
 # Check if dependencies are installed
 if ! python -c "import fastapi" 2>/dev/null; then
