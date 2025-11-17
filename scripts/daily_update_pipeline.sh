@@ -115,13 +115,20 @@ check_martin_server() {
 restart_martin_server() {
     log "🔄 Restarting Martin server with new tiles..."
     
-    # Stop existing Martin server
-    pkill -f "martin" || log "No existing Martin server found"
+    # Stop existing Martin server (screen session or process)
+    screen -S martin -X quit 2>/dev/null || log "No existing Martin screen session found"
+    pkill -f "martin" 2>/dev/null || log "No existing Martin process found"
     sleep 2
     
-    # Start new Martin server with config file
+    # Check if PMTiles file exists
+    PMTILES_FILE=$(grep -A 5 "pmtiles:" "$MARTIN_CONFIG" 2>/dev/null | grep "combined_ownership" | awk '{print $2}' | tr -d '"' || echo "tiles/combined_ownership.pmtiles")
+    if [ ! -f "$PROJECT_ROOT/$PMTILES_FILE" ]; then
+        error "PMTiles file not found: $PMTILES_FILE - Cannot start Martin server"
+    fi
+    
+    # Start new Martin server in screen session
     cd "$PROJECT_ROOT"
-    nohup martin --config "$MARTIN_CONFIG" --listen-addresses 0.0.0.0:9000 > "$SCRIPT_DIR/martin.log" 2>&1 &
+    screen -S martin -d -m bash -c "./scripts/vm1_services/start_martin.sh"
     
     # Wait for server to start
     sleep 5
@@ -138,40 +145,103 @@ restart_martin_server() {
 restart_search_api() {
     log "🔄 Restarting Search API to load new index..."
     
-    # Stop existing Search API if running
-    if pgrep -f "uvicorn.*app:app" > /dev/null; then
-        log "🛑 Stopping existing Search API..."
-        pkill -f "uvicorn.*app:app"
-        sleep 3
-        if pgrep -f "uvicorn.*app:app" > /dev/null; then
-            warning "⚠️ Search API still running after stop command"
-            pkill -9 -f "uvicorn.*app:app" 2>/dev/null || true
-            sleep 2
-        fi
-    else
-        log "📭 No existing Search API found"
-    fi
+    # Stop existing Search API (screen session or process)
+    screen -S search_api -X quit 2>/dev/null || log "No existing Search API screen session found"
+    pkill -f "start_search_api.py" 2>/dev/null || log "No existing Search API process found"
+    pkill -f "uvicorn.*app:app.*9001" 2>/dev/null || true
+    sleep 2
     
-    # Start Search API with new index
-    cd "$SEARCH_API_DIR"
+    # Start Search API in screen session
+    cd "$PROJECT_ROOT"
     log "🚀 Starting Search API on port 9001..."
-    nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 9001 > "$SCRIPT_DIR/search_api.log" 2>&1 &
-    SEARCH_PID=$!
+    screen -S search_api -d -m bash -c "source venv/bin/activate && python3 scripts/vm1_services/start_search_api.py"
     
     # Wait for server to start with better feedback
     log "⏳ Waiting for Search API to start..."
-    for i in {1..10}; do
+    for i in {1..15}; do
         sleep 1
-        if pgrep -f "uvicorn.*app:app" > /dev/null; then
-            log "✅ Search API started successfully (PID: $SEARCH_PID)"
+        if curl -s -f "http://localhost:9001/health" > /dev/null 2>&1; then
+            log "✅ Search API started successfully"
             return 0
         fi
         echo -n "."
     done
     echo ""
     
-    warning "⚠️ Search API may not have started properly (check search_api.log)"
+    warning "⚠️ Search API may not have started properly (check screen session: screen -r search_api)"
     return 1
+}
+
+# Function to restart Property API (load balanced instances)
+restart_property_api() {
+    log "🔄 Restarting Property API (load balanced)..."
+    
+    # Stop existing Property API (screen session or processes)
+    screen -S property_api -X quit 2>/dev/null || log "No existing Property API screen session found"
+    pkill -f "start_property_multi" 2>/dev/null || log "No existing Property API processes found"
+    pkill -f "uvicorn.*main:app.*901[1-3]" 2>/dev/null || true
+    sleep 2
+    
+    # Start Property API in screen session
+    cd "$PROJECT_ROOT"
+    log "🚀 Starting Property API on ports 9011, 9012, 9013..."
+    screen -S property_api -d -m bash -c "source venv/bin/activate && ./scripts/vm1_services/start_property_multi.sh"
+    
+    # Wait for instances to start
+    log "⏳ Waiting for Property API instances to start..."
+    sleep 5
+    
+    # Check if at least one instance is running
+    local instances_running=0
+    for port in 9011 9012 9013; do
+        if curl -s -f "http://localhost:$port/health" > /dev/null 2>&1; then
+            instances_running=$((instances_running + 1))
+        fi
+    done
+    
+    if [ $instances_running -gt 0 ]; then
+        log "✅ Property API started successfully ($instances_running/3 instances running)"
+        return 0
+    else
+        warning "⚠️ Property API may not have started properly (check screen session: screen -r property_api)"
+        return 1
+    fi
+}
+
+# Function to restart Report API (load balanced instances)
+restart_report_api() {
+    log "🔄 Restarting Report API (load balanced)..."
+    
+    # Stop existing Report API (screen session or processes)
+    screen -S report_api -X quit 2>/dev/null || log "No existing Report API screen session found"
+    pkill -f "start_report_multi" 2>/dev/null || log "No existing Report API processes found"
+    pkill -f "uvicorn.*app:app.*902[1-3]" 2>/dev/null || true
+    sleep 2
+    
+    # Start Report API in screen session
+    cd "$PROJECT_ROOT"
+    log "🚀 Starting Report API on ports 9021, 9022, 9023..."
+    screen -S report_api -d -m bash -c "source venv/bin/activate && ./scripts/vm1_services/start_report_multi.sh"
+    
+    # Wait for instances to start
+    log "⏳ Waiting for Report API instances to start..."
+    sleep 5
+    
+    # Check if at least one instance is running
+    local instances_running=0
+    for port in 9021 9022 9023; do
+        if curl -s -f "http://localhost:$port/health" > /dev/null 2>&1; then
+            instances_running=$((instances_running + 1))
+        fi
+    done
+    
+    if [ $instances_running -gt 0 ]; then
+        log "✅ Report API started successfully ($instances_running/3 instances running)"
+        return 0
+    else
+        warning "⚠️ Report API may not have started properly (check screen session: screen -r report_api)"
+        return 1
+    fi
 }
 
 
@@ -216,6 +286,66 @@ check_search_api_health() {
     done
     
     warning "❌ Search API health check failed after $max_retries attempts"
+    return 1
+}
+
+# Function to check Property API health
+check_property_api_health() {
+    local max_retries=3
+    local retry_count=0
+    local healthy_instances=0
+    
+    log "🔍 Checking Property API health..."
+    
+    while [ $retry_count -lt $max_retries ]; do
+        healthy_instances=0
+        for port in 9011 9012 9013; do
+            if curl -s -f "http://localhost:$port/health" > /dev/null 2>&1; then
+                healthy_instances=$((healthy_instances + 1))
+            fi
+        done
+        
+        if [ $healthy_instances -gt 0 ]; then
+            log "✅ Property API health check passed ($healthy_instances/3 instances healthy)"
+            return 0
+        else
+            retry_count=$((retry_count + 1))
+            log "⏳ Property API health check attempt $retry_count/$max_retries failed, retrying in 3 seconds..."
+            sleep 3
+        fi
+    done
+    
+    warning "❌ Property API health check failed after $max_retries attempts"
+    return 1
+}
+
+# Function to check Report API health
+check_report_api_health() {
+    local max_retries=3
+    local retry_count=0
+    local healthy_instances=0
+    
+    log "🔍 Checking Report API health..."
+    
+    while [ $retry_count -lt $max_retries ]; do
+        healthy_instances=0
+        for port in 9021 9022 9023; do
+            if curl -s -f "http://localhost:$port/health" > /dev/null 2>&1; then
+                healthy_instances=$((healthy_instances + 1))
+            fi
+        done
+        
+        if [ $healthy_instances -gt 0 ]; then
+            log "✅ Report API health check passed ($healthy_instances/3 instances healthy)"
+            return 0
+        else
+            retry_count=$((retry_count + 1))
+            log "⏳ Report API health check attempt $retry_count/$max_retries failed, retrying in 3 seconds..."
+            sleep 3
+        fi
+    done
+    
+    warning "❌ Report API health check failed after $max_retries attempts"
     return 1
 }
 
@@ -283,6 +413,34 @@ perform_health_checks() {
         fi
     else
         health_results+="❌ Health endpoint: Not responding\n"
+    fi
+    
+    # Property API health
+    health_results+="\n=== PROPERTY API (Load Balanced) ===\n"
+    local property_healthy=0
+    for port in 9011 9012 9013; do
+        if curl -s -f "http://localhost:$port/health" > /dev/null 2>&1; then
+            property_healthy=$((property_healthy + 1))
+        fi
+    done
+    if [ $property_healthy -gt 0 ]; then
+        health_results+="✅ Property API: $property_healthy/3 instances healthy\n"
+    else
+        health_results+="❌ Property API: No instances responding\n"
+    fi
+    
+    # Report API health
+    health_results+="\n=== REPORT API (Load Balanced) ===\n"
+    local report_healthy=0
+    for port in 9021 9022 9023; do
+        if curl -s -f "http://localhost:$port/health" > /dev/null 2>&1; then
+            report_healthy=$((report_healthy + 1))
+        fi
+    done
+    if [ $report_healthy -gt 0 ]; then
+        health_results+="✅ Report API: $report_healthy/3 instances healthy\n"
+    else
+        health_results+="❌ Report API: No instances responding\n"
     fi
     
     echo -e "$health_results"
@@ -401,7 +559,7 @@ EOF
     if restart_search_api; then
         log "✅ Search API restart completed"
     else
-        warning "⚠️ Search API restart had issues (check search_api.log)"
+        warning "⚠️ Search API restart had issues (check screen session: screen -r search_api)"
     fi
     
     # Health check Search API
@@ -409,6 +567,36 @@ EOF
         log "✅ Search API is healthy"
     else
         warning "⚠️ Search API health check failed"
+    fi
+    
+    # Step 6: Restart Property API (to ensure fresh data connections)
+    log "🔄 Step 6: Restarting Property API..."
+    if restart_property_api; then
+        log "✅ Property API restart completed"
+    else
+        warning "⚠️ Property API restart had issues (check screen session: screen -r property_api)"
+    fi
+    
+    # Health check Property API
+    if check_property_api_health; then
+        log "✅ Property API is healthy"
+    else
+        warning "⚠️ Property API health check failed"
+    fi
+    
+    # Step 7: Restart Report API (to ensure fresh data connections)
+    log "🔄 Step 7: Restarting Report API..."
+    if restart_report_api; then
+        log "✅ Report API restart completed"
+    else
+        warning "⚠️ Report API restart had issues (check screen session: screen -r report_api)"
+    fi
+    
+    # Health check Report API
+    if check_report_api_health; then
+        log "✅ Report API is healthy"
+    else
+        warning "⚠️ Report API health check failed"
     fi
     
     # Calculate duration
@@ -424,6 +612,8 @@ EOF
     log "   - Tiles generated in: $TILES_DIR"
     log "   - Martin server: http://localhost:9000"
     log "   - Search API: http://localhost:9001"
+    log "   - Property API (LB): http://localhost:9011, 9012, 9013"
+    log "   - Report API (LB): http://localhost:9021, 9022, 9023"
     log "   - Config updated: $MARTIN_CONFIG"
     
     # Show disk usage
