@@ -15,6 +15,14 @@ if [ ! -f "martin_config.yaml" ]; then
     exit 1
 fi
 
+# Check if PMTiles file exists (warn but don't fail)
+PMTILES_FILE=$(grep -A 5 "pmtiles:" martin_config.yaml | grep "combined_ownership" | awk '{print $2}' | tr -d '"' || echo "tiles/combined_ownership.pmtiles")
+if [ ! -f "$PMTILES_FILE" ]; then
+    echo "⚠️  Warning: PMTiles file not found: $PMTILES_FILE"
+    echo "   Martin will start but won't serve tiles until PMTiles are generated."
+    echo "   Run the PMTiles generation pipeline to create the tiles."
+fi
+
 # Check if port 9000 is available
 if ss -tlnp | grep -q ":9000 "; then
     echo "⚠️  Warning: Port 9000 is already in use."

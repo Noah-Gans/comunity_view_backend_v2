@@ -22,4 +22,12 @@ from app import app
 if __name__ == "__main__":
     print("🚀 Starting Property Search API...")
     print(f"📁 Working directory: {os.getcwd()}")
+    
+    # Check if search index exists (warn but don't fail)
+    search_index = os.path.join(os.getcwd(), "search_index.json")
+    if not os.path.exists(search_index):
+        print(f"⚠️  Warning: search_index.json not found at {search_index}")
+        print("   Search API will start but won't have search data until index is generated.")
+        print("   Run the search index generation to create the index.")
+    
     uvicorn.run(app, host="0.0.0.0", port=9001) 
