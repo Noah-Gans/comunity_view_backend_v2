@@ -16,6 +16,9 @@ sys.path.insert(0, project_root)
 search_api_dir = os.path.join(project_root, 'services', 'search_api')
 os.chdir(search_api_dir)
 
+# Add search_api directory to path so we can import app
+sys.path.insert(0, search_api_dir)
+
 # Now import app
 from app import app
 
