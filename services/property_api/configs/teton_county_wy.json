@@ -1,0 +1,366 @@
+{
+  "county": "teton_county_wy",
+  "description": "Teton County Wyoming data mapping configuration",
+  "mappings": {
+    "general_info": {
+      "county_state": {
+        "sources": [
+          { "path": "county", "priority": 1, "transform": "format_county_state" }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 },
+          { "path": "tax_data.general_info.owner_name", "priority": 2 },
+          { "path": "tax_data.current_tax.owner_name", "priority": 3 }
+        ]
+      },
+      "physical_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 },
+          { "path": "tax_data.general_info.street_address", "priority": 2 }
+        ]
+      },
+      "mailing_address": {
+        "sources": [
+          { "path": "property_data.mailing_address", "priority": 1 },
+          { "path": "tax_data.general_info.mailing_address", "priority": 2 }
+        ]
+      },
+      "county_parcel_id": {
+        "sources": [
+          { "path": "property_data.county_parcel_id", "priority": 1 }
+        ]
+      },
+      "tax_id": {
+        "sources": [
+          { "path": "tax_data.tax_id", "priority": 1 },
+          { "path": "property_data.tax_id", "priority": 2 }
+        ]
+      },
+      "account_number": {
+        "sources": [
+          { "path": "tax_data.general_info.account", "priority": 1 }
+        ]
+      },
+      "acres": {
+        "sources": [
+          { "path": "property_data.total_acres", "priority": 1 }
+        ]
+      },
+      "zoning": {
+        "sources": [
+          { "path": "property_data.zoning", "priority": 1 }
+        ]
+      }
+    },
+    "tax": {
+      "tax_id": {
+        "sources": [
+          { "path": "tax_data.tax_id", "priority": 1 }
+        ]
+      },
+      "tax_year": {
+        "sources": [
+          { "path": "tax_data.current_tax.tax_year", "priority": 1 }
+        ]
+      },
+      "assessed_value": {
+        "sources": [
+          { "path": "null", "priority": 1, "note": "Teton County doesn't provide assessed value" }
+        ]
+      },
+      "taxable_value": {
+        "sources": [
+          { "path": "null", "priority": 1, "note": "Teton County doesn't provide taxable value" }
+        ]
+      },
+      "tax_amount": {
+        "sources": [
+          { "path": "tax_data.current_tax.total_tax_levied", "priority": 1 }
+        ]
+      },
+      "first_half_due_date": {
+        "sources": [
+            { "path": "hardcoded", "priority": 1, "value": "09/01/2025", "note": "Teton County first half due date" }
+        ]
+      },
+      "second_half_due_date": {
+        "sources": [
+            { "path": "hardcoded", "priority": 1, "value": "03/01/2025", "note": "Teton County second half due date" }
+        ]
+      },
+      "status": {
+        "sources": [
+          { "path": "tax_data.current_tax.status", "priority": 1 }
+        ]
+      },
+      "tax_district": {
+        "sources": [
+          { "path": "tax_data.general_info.district", "priority": 1 }
+        ]
+      },
+      "mill_levy": {
+        "sources": [
+          { "path": "tax_data.general_info.mill_levy", "priority": 1 }
+        ]
+      },
+      "account_number": {
+        "sources": [
+          { "path": "tax_data.general_info.account", "priority": 1 }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "tax_data.general_info.owner_name", "priority": 1 },
+          { "path": "tax_data.current_tax.owner_name", "priority": 2 }
+        ]
+      },
+      "property_address": {
+        "sources": [
+          { "path": "tax_data.general_info.street_address", "priority": 1 }
+        ]
+      },
+      "total_tax_levied": {
+        "sources": [
+          { "path": "tax_data.current_tax.total_tax_levied", "priority": 1 }
+        ]
+      },
+      "tax_received": {
+        "sources": [
+          { "path": "tax_data.current_tax.tax_received", "priority": 1 }
+        ]
+      },
+      "amount_due": {
+        "sources": [
+          { "path": "tax_data.current_tax.amount_due", "priority": 1 }
+        ]
+      },
+      "first_half_levied": {
+        "sources": [
+          { "path": "tax_data.current_tax.first_half.levied", "priority": 1 }
+        ]
+      },
+      "first_half_paid": {
+        "sources": [
+          { "path": "tax_data.current_tax.first_half.paid", "priority": 1 }
+        ]
+      },
+      "first_half_balance": {
+        "sources": [
+          { "path": "tax_data.current_tax.first_half.balance", "priority": 1 }
+        ]
+      },
+      "second_half_levied": {
+        "sources": [
+          { "path": "tax_data.current_tax.second_half.levied", "priority": 1 }
+        ]
+      },
+      "second_half_paid": {
+        "sources": [
+          { "path": "tax_data.current_tax.second_half.paid", "priority": 1 }
+        ]
+      },
+      "second_half_balance": {
+        "sources": [
+          { "path": "tax_data.current_tax.second_half.balance", "priority": 1 }
+        ]
+      },
+      "historical_data": {
+        "sources": [
+          { "path": "tax_data.historical_taxes", "priority": 1, "transform": "standardize_historical" }
+        ]
+      }
+    },
+    "property_details": {
+      "county_parcel_id": {
+        "sources": [
+          { "path": "property_data.county_parcel_id", "priority": 1 }
+        ]
+      },
+      "tax_id": {
+        "sources": [
+          { "path": "property_data.tax_id", "priority": 1 }
+        ]
+      },
+      "physical_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 }
+        ]
+      },
+      "mailing_address": {
+        "sources": [
+          { "path": "property_data.mailing_address", "priority": 1 }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 }
+        ]
+      },
+      "legal_description": {
+        "sources": [
+          { "path": "property_data.legal.location", "priority": 1 }
+        ]
+      },
+      "deed": {
+        "sources": [
+          { "path": "property_data.deed", "priority": 1 }
+        ]
+      },
+      "total_property_value": {
+        "sources": [
+          { "path": "property_data.value_summary.total_value", "priority": 1 }
+        ]
+      },
+      "land_value": {
+        "sources": [
+          { "path": "property_data.value_summary.land", "priority": 1 }
+        ]
+      },
+      "developments_value": {
+        "sources": [
+          { "path": "property_data.value_summary.developments", "priority": 1 }
+        ]
+      },
+      "total_acreage": {
+        "sources": [
+          { "path": "property_data.total_acres", "priority": 1 }
+        ]
+      },
+      "acreage_breakdown": {
+        "sources": [
+          { "path": "property_data.acreage_breakdown", "priority": 1, "transform": "format_acreage_breakdown" }
+        ]
+      },
+      "developments": {
+        "sources": [
+          { "path": "property_data.developments", "priority": 1, "transform": "standardize_developments" }
+        ]
+      },
+      "num_developments": {
+        "sources": [
+          { "path": "property_data.developments", "priority": 1, "transform": "count_developments" }
+        ]
+      },
+      "zoning": {
+        "sources": [
+          { "path": "property_data.zoning", "priority": 1 }
+        ]
+      }
+    },
+    "clerk": {
+      "deeds": {
+        "sources": [
+          { "path": "clerk_data.deeds", "priority": 1, "note": "Not implemented yet" }
+        ]
+      },
+      "mortgages": {
+        "sources": [
+          { "path": "clerk_data.mortgages", "priority": 1, "note": "Not implemented yet" }
+        ]
+      },
+      "liens": {
+        "sources": [
+          { "path": "clerk_data.liens", "priority": 1, "note": "Not implemented yet" }
+        ]
+      }
+    },
+    "development": {
+      "id": {
+        "sources": [{"path": "development.Building ID", "priority": 1}]
+      },
+      "description": {
+        "sources": [{"path": "development.BLTAS Description", "priority": 1}]
+      },
+      "stories": {
+        "sources": [{"path": "development.BLTAS Stories", "priority": 1}]
+      },
+      "sq_ft": {
+        "sources": [{"path": "development.Square Feet", "priority": 1}]
+      },
+      "exterior": {
+        "sources": [{"path": "development.Improvement Exterior", "priority": 1}]
+      },
+      "roof_cover": {
+        "sources": [{"path": "development.Roof Cover", "priority": 1}]
+      },
+      "bedrooms": {
+        "sources": [{"path": "development.Bedroom Count", "priority": 1}]
+      },
+      "year_built": {
+        "sources": [{"path": "development.BLTAS Year Built", "priority": 1}]
+      }
+    },
+    "historical_field_mappings": {
+      "year": {
+        "sources": [
+          { "path": "historical_record.tax_year", "priority": 1 }
+        ]
+      },
+      "tax_levied": {
+        "sources": [
+          { "path": "historical_record.total_tax_levied", "priority": 1 }
+        ]
+      },
+      "tax_paid": {
+        "sources": [
+          { "path": "historical_record.tax_paid", "priority": 1 }
+        ]
+      },
+      "date_paid": {
+        "sources": [
+          { "path": "historical_record.transaction_date", "priority": 1 }
+        ]
+      },
+      "amount_due": {
+        "sources": [
+          { "path": "historical_record.total_tax_levied", "priority": 1 },
+          { "path": "historical_record.tax_paid", "priority": 2, "transform": "calculate_amount_due" }
+        ]
+      },
+      "first_half_tax_levied": {
+        "sources": [
+          { "path": "historical_record.total_tax_levied", "priority": 1, "transform": "divide_by_two" }
+        ]
+      },
+      "first_half_tax_paid": {
+        "sources": [
+          { "path": "historical_record.first_half_payment", "priority": 1 }
+        ]
+      },
+      "first_half_date_paid": {
+        "sources": [
+          { "path": "historical_record.transaction_date", "priority": 1 }
+        ]
+      },
+      "first_half_amount_due": {
+        "sources": [
+          { "path": "historical_record.total_tax_levied", "priority": 1 },
+          { "path": "historical_record.first_half_payment", "priority": 2, "transform": "calculate_first_half_due" }
+        ]
+      },
+      "second_half_tax_levied": {
+        "sources": [
+          { "path": "historical_record.total_tax_levied", "priority": 1, "transform": "divide_by_two" }
+        ]
+      },
+      "second_half_tax_paid": {
+        "sources": [
+          { "path": "historical_record.second_half_payment", "priority": 1 }
+        ]
+      },
+      "second_half_date_paid": {
+        "sources": [
+          { "path": "historical_record.transaction_date", "priority": 1 }
+        ]
+      },
+      "second_half_amount_due": {
+        "sources": [
+          { "path": "historical_record.total_tax_levied", "priority": 1 },
+          { "path": "historical_record.second_half_payment", "priority": 2, "transform": "calculate_second_half_due" }
+        ]
+      }
+    }
+  }
+}

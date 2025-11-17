@@ -1,0 +1,5 @@
+cors: true
+
+pmtiles:
+  sources:
+    combined_ownership: tiles/combined_ownership.pmtiles

@@ -1,0 +1,29 @@
+# Test Curl Command for Teton County ID Parcels
+
+curl -X POST "http://localhost:9003/batch-retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "parcels": [
+    {"county": "teton_county_id", "county_parcel_id": "RP008380030080"},
+    {"county": "teton_county_id", "county_parcel_id": "RP008380030070"},
+    {"county": "teton_county_id", "county_parcel_id": "RP008380030020"},
+    {"county": "teton_county_id", "county_parcel_id": "RP008380030010"},
+    {"county": "teton_county_id", "county_parcel_id": "RP004830000020"},
+    {"county": "teton_county_id", "county_parcel_id": "RP004830000040"},
+    {"county": "teton_county_id", "county_parcel_id": "RP004830000030"}
+  ]
+}'
+
+# Expected Results:
+# - All 7 parcels found
+# - Tax data standardized
+# - Property data standardized
+# - Clerk data may show "error" (expected for ID)
+
+
+
+
+
+
+
+

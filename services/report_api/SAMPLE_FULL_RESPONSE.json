@@ -1,0 +1,1259 @@
+{
+    "total_requested": 1,
+    "total_found": 1,
+    "total_missing": 0,
+    "parcels": [
+        {
+            "county": "teton_county_wy",
+            "county_parcel_id": "22-41-17-22-1-01-020",
+            "found": true,
+            "general_info": {
+                "county_state": null,
+                "owner_name": "CARLMAN, LEONARD R. & ANN LADD ",
+                "physical_address": "4980 H-H-R RANCH ROAD",
+                "mailing_address": "PO BOX 1230, WILSON, WY, 830141230",
+                "county_parcel_id": "22-41-17-22-1-01-020",
+                "tax_id": "04-002797",
+                "account_number": "R0008450",
+                "acres": "5.45",
+                "county_links": {
+                    "tax_records": "https://gis.tetoncountywy.gov/portal/apps/dashboards/5574848e46464109a14dead33e5ddace#ParcelInfo=04-002797",
+                    "property_details": "https://gis.tetoncountywy.gov/portal/apps/dashboards/ca93f7b7ae3e4d51ad371121a64ee739#accountno=R0008450",
+                    "clerk_records": "https://gis.tetoncountywy.gov/portal/apps/dashboards/03ef10d8b8634909b6263e9016bcc986#statepin=22-41-17-22-1-01-020"
+                }
+            },
+            "tax_data": {
+                "status": "success",
+                "message": "Tax data retrieved successfully",
+                "data": {
+                    "county": "Teton County Wy",
+                    "tax_id": "04-002797",
+                    "tax_year": 2025,
+                    "assessed_value": null,
+                    "taxable_value": null,
+                    "tax_amount": 18350.73,
+                    "first_half_due_date": "09/01/2025",
+                    "second_half_due_date": "03/01/2025",
+                    "status": "unpaid",
+                    "tax_district": "0121",
+                    "mill_levy": 56.799,
+                    "account_number": "R0008450",
+                    "owner_name": "CARLMAN, LEONARD R. & ANN LADD ",
+                    "property_address": "4980 H-H-R RANCH ROAD",
+                    "total_tax_levied": 18350.73,
+                    "tax_received": 0,
+                    "amount_due": 18350.73,
+                    "first_half_levied": 9175.37,
+                    "first_half_paid": 0,
+                    "second_half_levied": 9175.36,
+                    "second_half_paid": 0,
+                    "historical_data": [
+                        {
+                            "year": 2024,
+                            "tax_levied": 18541.82,
+                            "tax_paid": 18541.82,
+                            "date_paid": "2024-11-05",
+                            "amount_due": 18541.82,
+                            "first_half": {
+                                "tax_levied": 9270.91,
+                                "tax_paid": 9270.91,
+                                "date_paid": "2024-11-05",
+                                "amount_due": 18541.82
+                            },
+                            "second_half": {
+                                "tax_levied": 9270.91,
+                                "tax_paid": 9270.91,
+                                "date_paid": "2024-11-05",
+                                "amount_due": 18541.82
+                            }
+                        },
+                        {
+                            "year": 2023,
+                            "tax_levied": 18294.11,
+                            "tax_paid": 18294.11,
+                            "date_paid": "2023-10-03",
+                            "amount_due": 18294.11,
+                            "first_half": {
+                                "tax_levied": 9147.055,
+                                "tax_paid": 9147.06,
+                                "date_paid": "2023-10-03",
+                                "amount_due": 18294.11
+                            },
+                            "second_half": {
+                                "tax_levied": 9147.055,
+                                "tax_paid": 9147.05,
+                                "date_paid": "2023-10-03",
+                                "amount_due": 18294.11
+                            }
+                        },
+                        {
+                            "year": 2022,
+                            "tax_levied": 15381.57,
+                            "tax_paid": 15381.57,
+                            "date_paid": "2022-11-06",
+                            "amount_due": 15381.57,
+                            "first_half": {
+                                "tax_levied": 7690.785,
+                                "tax_paid": 7690.79,
+                                "date_paid": "2022-11-06",
+                                "amount_due": 15381.57
+                            },
+                            "second_half": {
+                                "tax_levied": 7690.785,
+                                "tax_paid": 7690.78,
+                                "date_paid": "2022-11-06",
+                                "amount_due": 15381.57
+                            }
+                        },
+                        {
+                            "year": 2021,
+                            "tax_levied": 17450.1,
+                            "tax_paid": 17450.1,
+                            "date_paid": "2021-11-04",
+                            "amount_due": 17450.1,
+                            "first_half": {
+                                "tax_levied": 8725.05,
+                                "tax_paid": 8725.05,
+                                "date_paid": "2021-11-04",
+                                "amount_due": 17450.1
+                            },
+                            "second_half": {
+                                "tax_levied": 8725.05,
+                                "tax_paid": 8725.05,
+                                "date_paid": "2021-11-04",
+                                "amount_due": 17450.1
+                            }
+                        },
+                        {
+                            "year": 2020,
+                            "tax_levied": 12470.56,
+                            "tax_paid": 12470.56,
+                            "date_paid": "2020-10-29",
+                            "amount_due": 12470.56,
+                            "first_half": {
+                                "tax_levied": 6235.28,
+                                "tax_paid": 6235.28,
+                                "date_paid": "2020-10-29",
+                                "amount_due": 12470.56
+                            },
+                            "second_half": {
+                                "tax_levied": 6235.28,
+                                "tax_paid": 6235.28,
+                                "date_paid": "2020-10-29",
+                                "amount_due": 12470.56
+                            }
+                        },
+                        {
+                            "year": 2019,
+                            "tax_levied": 11831.78,
+                            "tax_paid": 11831.78,
+                            "date_paid": "2019-10-23",
+                            "amount_due": 11831.78,
+                            "first_half": {
+                                "tax_levied": 5915.89,
+                                "tax_paid": 5915.89,
+                                "date_paid": "2019-10-23",
+                                "amount_due": 11831.78
+                            },
+                            "second_half": {
+                                "tax_levied": 5915.89,
+                                "tax_paid": 5915.89,
+                                "date_paid": "2019-10-23",
+                                "amount_due": 11831.78
+                            }
+                        },
+                        {
+                            "year": 2018,
+                            "tax_levied": 12542.63,
+                            "tax_paid": 12542.630000000001,
+                            "date_paid": "2018-12-17",
+                            "amount_due": 12542.63,
+                            "first_half": {
+                                "tax_levied": 6271.315,
+                                "tax_paid": 6271.32,
+                                "date_paid": "2018-12-17",
+                                "amount_due": 12542.63
+                            },
+                            "second_half": {
+                                "tax_levied": 6271.315,
+                                "tax_paid": 6271.31,
+                                "date_paid": "2018-12-17",
+                                "amount_due": 12542.63
+                            }
+                        },
+                        {
+                            "year": 2017,
+                            "tax_levied": 11857.63,
+                            "tax_paid": 11857.630000000001,
+                            "date_paid": "2017-11-06",
+                            "amount_due": 11857.63,
+                            "first_half": {
+                                "tax_levied": 5928.815,
+                                "tax_paid": 5928.82,
+                                "date_paid": "2017-11-06",
+                                "amount_due": 11857.63
+                            },
+                            "second_half": {
+                                "tax_levied": 5928.815,
+                                "tax_paid": 5928.81,
+                                "date_paid": "2017-11-06",
+                                "amount_due": 11857.63
+                            }
+                        },
+                        {
+                            "year": 2016,
+                            "tax_levied": 10589.0,
+                            "tax_paid": 10589.0,
+                            "date_paid": "2016-11-07",
+                            "amount_due": 10589.0,
+                            "first_half": {
+                                "tax_levied": 5294.5,
+                                "tax_paid": 5294.5,
+                                "date_paid": "2016-11-07",
+                                "amount_due": 10589.0
+                            },
+                            "second_half": {
+                                "tax_levied": 5294.5,
+                                "tax_paid": 5294.5,
+                                "date_paid": "2016-11-07",
+                                "amount_due": 10589.0
+                            }
+                        },
+                        {
+                            "year": 2015,
+                            "tax_levied": 10341.41,
+                            "tax_paid": 10341.41,
+                            "date_paid": "2015-11-10",
+                            "amount_due": 10341.41,
+                            "first_half": {
+                                "tax_levied": 5170.705,
+                                "tax_paid": 5170.71,
+                                "date_paid": "2015-11-10",
+                                "amount_due": 10341.41
+                            },
+                            "second_half": {
+                                "tax_levied": 5170.705,
+                                "tax_paid": 5170.7,
+                                "date_paid": "2015-11-10",
+                                "amount_due": 10341.41
+                            }
+                        },
+                        {
+                            "year": 2014,
+                            "tax_levied": 9824.77,
+                            "tax_paid": 9824.77,
+                            "date_paid": "2014-11-04",
+                            "amount_due": 9824.77,
+                            "first_half": {
+                                "tax_levied": 4912.385,
+                                "tax_paid": 4912.39,
+                                "date_paid": "2014-11-04",
+                                "amount_due": 9824.77
+                            },
+                            "second_half": {
+                                "tax_levied": 4912.385,
+                                "tax_paid": 4912.38,
+                                "date_paid": "2014-11-04",
+                                "amount_due": 9824.77
+                            }
+                        },
+                        {
+                            "year": 2013,
+                            "tax_levied": 9681.1,
+                            "tax_paid": 9681.1,
+                            "date_paid": "2013-09-22",
+                            "amount_due": 9681.1,
+                            "first_half": {
+                                "tax_levied": 4840.55,
+                                "tax_paid": 4840.55,
+                                "date_paid": "2013-09-22",
+                                "amount_due": 9681.1
+                            },
+                            "second_half": {
+                                "tax_levied": 4840.55,
+                                "tax_paid": 4840.55,
+                                "date_paid": "2013-09-22",
+                                "amount_due": 9681.1
+                            }
+                        },
+                        {
+                            "year": 2012,
+                            "tax_levied": 10355.12,
+                            "tax_paid": 10355.12,
+                            "date_paid": "2012-10-03",
+                            "amount_due": 10355.12,
+                            "first_half": {
+                                "tax_levied": 5177.56,
+                                "tax_paid": 5177.56,
+                                "date_paid": "2012-10-03",
+                                "amount_due": 10355.12
+                            },
+                            "second_half": {
+                                "tax_levied": 5177.56,
+                                "tax_paid": 5177.56,
+                                "date_paid": "2012-10-03",
+                                "amount_due": 10355.12
+                            }
+                        },
+                        {
+                            "year": 2011,
+                            "tax_levied": 10877.96,
+                            "tax_paid": 10877.96,
+                            "date_paid": "2011-10-05",
+                            "amount_due": 10877.96,
+                            "first_half": {
+                                "tax_levied": 5438.98,
+                                "tax_paid": 5438.98,
+                                "date_paid": "2011-10-05",
+                                "amount_due": 10877.96
+                            },
+                            "second_half": {
+                                "tax_levied": 5438.98,
+                                "tax_paid": 5438.98,
+                                "date_paid": "2011-10-05",
+                                "amount_due": 10877.96
+                            }
+                        },
+                        {
+                            "year": 2010,
+                            "tax_levied": 10166.38,
+                            "tax_paid": 10166.38,
+                            "date_paid": "2010-10-05",
+                            "amount_due": 10166.38,
+                            "first_half": {
+                                "tax_levied": 5083.19,
+                                "tax_paid": 5083.19,
+                                "date_paid": "2010-10-05",
+                                "amount_due": 10166.38
+                            },
+                            "second_half": {
+                                "tax_levied": 5083.19,
+                                "tax_paid": 5083.19,
+                                "date_paid": "2010-10-05",
+                                "amount_due": 10166.38
+                            }
+                        },
+                        {
+                            "year": 2009,
+                            "tax_levied": 11819.96,
+                            "tax_paid": 11819.96,
+                            "date_paid": "2009-11-04",
+                            "amount_due": 11819.96,
+                            "first_half": {
+                                "tax_levied": 5909.98,
+                                "tax_paid": 5909.98,
+                                "date_paid": "2009-11-04",
+                                "amount_due": 11819.96
+                            },
+                            "second_half": {
+                                "tax_levied": 5909.98,
+                                "tax_paid": 5909.98,
+                                "date_paid": "2009-11-04",
+                                "amount_due": 11819.96
+                            }
+                        },
+                        {
+                            "year": 2008,
+                            "tax_levied": 11689.28,
+                            "tax_paid": 11689.28,
+                            "date_paid": "2008-11-04",
+                            "amount_due": 11689.28,
+                            "first_half": {
+                                "tax_levied": 5844.64,
+                                "tax_paid": 5844.64,
+                                "date_paid": "2008-11-04",
+                                "amount_due": 11689.28
+                            },
+                            "second_half": {
+                                "tax_levied": 5844.64,
+                                "tax_paid": 5844.64,
+                                "date_paid": "2008-11-04",
+                                "amount_due": 11689.28
+                            }
+                        },
+                        {
+                            "year": 2007,
+                            "tax_levied": 8719.9,
+                            "tax_paid": 8719.9,
+                            "date_paid": "2007-11-06",
+                            "amount_due": 8719.9,
+                            "first_half": {
+                                "tax_levied": 4359.95,
+                                "tax_paid": 4359.95,
+                                "date_paid": "2007-11-06",
+                                "amount_due": 8719.9
+                            },
+                            "second_half": {
+                                "tax_levied": 4359.95,
+                                "tax_paid": 4359.95,
+                                "date_paid": "2007-11-06",
+                                "amount_due": 8719.9
+                            }
+                        },
+                        {
+                            "year": 2006,
+                            "tax_levied": 7172.77,
+                            "tax_paid": 7172.77,
+                            "date_paid": "2006-11-08",
+                            "amount_due": 7172.77,
+                            "first_half": {
+                                "tax_levied": 3586.385,
+                                "tax_paid": 3586.39,
+                                "date_paid": "2006-11-08",
+                                "amount_due": 7172.77
+                            },
+                            "second_half": {
+                                "tax_levied": 3586.385,
+                                "tax_paid": 3586.38,
+                                "date_paid": "2006-11-08",
+                                "amount_due": 7172.77
+                            }
+                        },
+                        {
+                            "year": 2005,
+                            "tax_levied": 8136.77,
+                            "tax_paid": 8136.77,
+                            "date_paid": "2005-10-26",
+                            "amount_due": 8136.77,
+                            "first_half": {
+                                "tax_levied": 4068.385,
+                                "tax_paid": 4068.39,
+                                "date_paid": "2005-10-26",
+                                "amount_due": 8136.77
+                            },
+                            "second_half": {
+                                "tax_levied": 4068.385,
+                                "tax_paid": 4068.38,
+                                "date_paid": "2005-10-26",
+                                "amount_due": 8136.77
+                            }
+                        },
+                        {
+                            "year": 2004,
+                            "tax_levied": 7624.76,
+                            "tax_paid": 7624.76,
+                            "date_paid": "2004-10-25",
+                            "amount_due": 7624.76,
+                            "first_half": {
+                                "tax_levied": 3812.38,
+                                "tax_paid": 3812.38,
+                                "date_paid": "2004-10-25",
+                                "amount_due": 7624.76
+                            },
+                            "second_half": {
+                                "tax_levied": 3812.38,
+                                "tax_paid": 3812.38,
+                                "date_paid": "2004-10-25",
+                                "amount_due": 7624.76
+                            }
+                        },
+                        {
+                            "year": 2003,
+                            "tax_levied": 7723.59,
+                            "tax_paid": 7723.59,
+                            "date_paid": "2003-10-19",
+                            "amount_due": 7723.59,
+                            "first_half": {
+                                "tax_levied": 3861.795,
+                                "tax_paid": 3861.8,
+                                "date_paid": "2003-10-19",
+                                "amount_due": 7723.59
+                            },
+                            "second_half": {
+                                "tax_levied": 3861.795,
+                                "tax_paid": 3861.79,
+                                "date_paid": "2003-10-19",
+                                "amount_due": 7723.59
+                            }
+                        },
+                        {
+                            "year": 2002,
+                            "tax_levied": 8156.95,
+                            "tax_paid": 8156.95,
+                            "date_paid": "2002-10-23",
+                            "amount_due": 8156.95,
+                            "first_half": {
+                                "tax_levied": 4078.475,
+                                "tax_paid": 4078.48,
+                                "date_paid": "2002-10-23",
+                                "amount_due": 8156.95
+                            },
+                            "second_half": {
+                                "tax_levied": 4078.475,
+                                "tax_paid": 4078.47,
+                                "date_paid": "2002-10-23",
+                                "amount_due": 8156.95
+                            }
+                        },
+                        {
+                            "year": 2001,
+                            "tax_levied": 8176.94,
+                            "tax_paid": 8176.94,
+                            "date_paid": "2001-11-15",
+                            "amount_due": 8176.94,
+                            "first_half": {
+                                "tax_levied": 4088.47,
+                                "tax_paid": 4088.47,
+                                "date_paid": "2001-11-15",
+                                "amount_due": 8176.94
+                            },
+                            "second_half": {
+                                "tax_levied": 4088.47,
+                                "tax_paid": 4088.47,
+                                "date_paid": "2001-11-15",
+                                "amount_due": 8176.94
+                            }
+                        },
+                        {
+                            "year": 2000,
+                            "tax_levied": 2831.33,
+                            "tax_paid": 2831.33,
+                            "date_paid": "2000-10-30",
+                            "amount_due": 2831.33,
+                            "first_half": {
+                                "tax_levied": 1415.665,
+                                "tax_paid": 1415.67,
+                                "date_paid": "2000-10-30",
+                                "amount_due": 2831.33
+                            },
+                            "second_half": {
+                                "tax_levied": 1415.665,
+                                "tax_paid": 1415.66,
+                                "date_paid": "2000-10-30",
+                                "amount_due": 2831.33
+                            }
+                        },
+                        {
+                            "year": 1999,
+                            "tax_levied": 1861.58,
+                            "tax_paid": 1861.58,
+                            "date_paid": "1999-09-08",
+                            "amount_due": 1861.58,
+                            "first_half": {
+                                "tax_levied": 930.79,
+                                "tax_paid": 930.79,
+                                "date_paid": "1999-09-08",
+                                "amount_due": 1861.58
+                            },
+                            "second_half": {
+                                "tax_levied": 930.79,
+                                "tax_paid": 930.79,
+                                "date_paid": "1999-09-08",
+                                "amount_due": 1861.58
+                            }
+                        },
+                        {
+                            "year": 1998,
+                            "tax_levied": 1438.66,
+                            "tax_paid": 1438.66,
+                            "date_paid": "1998-11-04",
+                            "amount_due": 1438.66,
+                            "first_half": {
+                                "tax_levied": 719.33,
+                                "tax_paid": 719.33,
+                                "date_paid": "1998-11-04",
+                                "amount_due": 1438.66
+                            },
+                            "second_half": {
+                                "tax_levied": 719.33,
+                                "tax_paid": 719.33,
+                                "date_paid": "1998-11-04",
+                                "amount_due": 1438.66
+                            }
+                        },
+                        {
+                            "year": 1997,
+                            "tax_levied": 1521.67,
+                            "tax_paid": 1521.67,
+                            "date_paid": "1997-09-16",
+                            "amount_due": 1521.67,
+                            "first_half": {
+                                "tax_levied": 760.835,
+                                "tax_paid": 760.84,
+                                "date_paid": "1997-09-16",
+                                "amount_due": 1521.67
+                            },
+                            "second_half": {
+                                "tax_levied": 760.835,
+                                "tax_paid": 760.83,
+                                "date_paid": "1997-09-16",
+                                "amount_due": 1521.67
+                            }
+                        }
+                    ]
+                },
+                "source": "teton_county_wy_tax_api_combined",
+                "timestamp": "2025-11-02T10:46:06.729374"
+            },
+            "property_data": {
+                "status": "success",
+                "message": "Property data retrieved successfully",
+                "data": {
+                    "county": "Teton County Wy",
+                    "county_parcel_id": "22-41-17-22-1-01-020",
+                    "tax_id": "04-002797",
+                    "physical_address": "4980 H-H-R RANCH ROAD",
+                    "mailing_address": "PO BOX 1230, WILSON, WY, 830141230",
+                    "owner_name": "CARLMAN, LEONARD R. & ANN LADD ",
+                    "legal_description": "LOT 12, H-H-R RANCHES",
+                    "total_property_value": "5670607",
+                    "land_value": "4219087",
+                    "developments_value": "1451520",
+                    "total_acreage": "5.45",
+                    "acreage_breakdown": {
+                        "residential": 5.45,
+                        "agricultural": 0.0,
+                        "commercial": 0.0,
+                        "industrial": 0.0,
+                        "other": 0.0
+                    },
+                    "num_developments": 1,
+                    "total_sq_ft": 3946.0,
+                    "largest_structure_sq_ft": 3946.0,
+                    "developments": [
+                        {
+                            "id": 1.0,
+                            "description": "2 Story",
+                            "stories": 2.0,
+                            "sq_ft": "3946",
+                            "exterior": "Frame Siding",
+                            "roof_cover": "Wood Shake",
+                            "bedrooms": 3.0,
+                            "year_built": 1999
+                        }
+                    ]
+                },
+                "source": "property_scraper_teton_county_wy",
+                "timestamp": "2025-11-02T10:46:06.729537"
+            },
+            "clerk_data": {
+                "status": "success",
+                "message": "Clerk data retrieved successfully",
+                "data": {
+                    "records_count": 34,
+                    "records": [
+                        {
+                            "entrynumber": "1043711",
+                            "dateofinstrument": "2022-08-02",
+                            "datetimeoffiling": "2022-08-02",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "COVENANTS",
+                            "beginningpage": null,
+                            "endingpage": null,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/1043711.pdf",
+                            "book": "358",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HHR RANCHES HOMEOWNERS ASSOCIATION",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0979773",
+                            "dateofinstrument": "2019-10-15",
+                            "datetimeoffiling": "2019-10-21",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MORTGAGE",
+                            "beginningpage": null,
+                            "endingpage": null,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0979773.pdf",
+                            "book": "358",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CARLMAN, LEONARD ET UX, LADD, ANNE",
+                            "grantee": "GUILD MORTGAGE COMPANY"
+                        },
+                        {
+                            "entrynumber": "0947700",
+                            "dateofinstrument": "2018-04-27",
+                            "datetimeoffiling": "2018-04-27",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": null,
+                            "endingpage": null,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0947700.pdf",
+                            "book": "358",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "MORTGAGE ELECTRONIC REGISTRATION*, SYSTEMS INC",
+                            "grantee": "CARLMAN, LEONARD R ET AL , CARLMAN, ANNE LADD"
+                        },
+                        {
+                            "entrynumber": "0870883",
+                            "dateofinstrument": "2014-10-27",
+                            "datetimeoffiling": "2014-11-14",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "COVENANTS",
+                            "beginningpage": 673,
+                            "endingpage": 674,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0870883.pdf",
+                            "book": "881",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HHR RANCHES OWNERS ASSOCIATION",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0761114",
+                            "dateofinstrument": "2009-09-30",
+                            "datetimeoffiling": "2009-10-07",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": 509,
+                            "endingpage": 509,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0761114.pdf",
+                            "book": "741",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "FIRST BANK OF IDAHO",
+                            "grantee": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD"
+                        },
+                        {
+                            "entrynumber": "0717878",
+                            "dateofinstrument": "2007-05-09",
+                            "datetimeoffiling": "2007-12-03",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MISC RE",
+                            "beginningpage": 756,
+                            "endingpage": 756,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0717878.pdf",
+                            "book": "684",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "STATE BOARD OF CONTROL",
+                            "grantee": "H H R IMPROVEMENT AND SERVICE DISTRICT"
+                        },
+                        {
+                            "entrynumber": "0717877",
+                            "dateofinstrument": "2007-05-09",
+                            "datetimeoffiling": "2007-12-03",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MISC RE",
+                            "beginningpage": 755,
+                            "endingpage": 755,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0717877.pdf",
+                            "book": "684",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "STATE BOARD OF CONTROL",
+                            "grantee": "H H R IMPROVEMENT AND SERVICE DISTRICT"
+                        },
+                        {
+                            "entrynumber": "0595004",
+                            "dateofinstrument": "2003-04-30",
+                            "datetimeoffiling": "2003-05-12",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": 256,
+                            "endingpage": 256,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0595004.pdf",
+                            "book": "504",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "COUNTRYWIDE HOME LOANS INC*, FKA*, COUNTRYWIDE FUNDING CORP",
+                            "grantee": "CARLMAN, LEONARD R ET AL, CARLMAN, ANNE LADD"
+                        },
+                        {
+                            "entrynumber": "0594094",
+                            "dateofinstrument": "2003-04-23",
+                            "datetimeoffiling": "2003-04-29",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MORTGAGE",
+                            "beginningpage": 663,
+                            "endingpage": 667,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0594094.pdf",
+                            "book": "502",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD",
+                            "grantee": "FIRST BANK OF IDAHO FSB"
+                        },
+                        {
+                            "entrynumber": "0594093",
+                            "dateofinstrument": "2003-04-24",
+                            "datetimeoffiling": "2003-04-29",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MORTGAGE",
+                            "beginningpage": 647,
+                            "endingpage": 662,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0594093.pdf",
+                            "book": "502",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD",
+                            "grantee": "FIRST BANK OF IDAHO FSB DBA*, FIRST BANK ADVISORS"
+                        },
+                        {
+                            "entrynumber": "0559437",
+                            "dateofinstrument": "2001-03-22",
+                            "datetimeoffiling": "2002-01-02",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "ASSIGNMENT",
+                            "beginningpage": 383,
+                            "endingpage": 384,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0559437.pdf",
+                            "book": "446",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "FIRST BANK OF IDAHO, CARLMAN, LEONARD R, CARLMAN, ANNE LADD",
+                            "grantee": "COUNTRYWIDE HOME LOANS INC"
+                        },
+                        {
+                            "entrynumber": "0558258",
+                            "dateofinstrument": "2001-12-06",
+                            "datetimeoffiling": "2001-12-17",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": 1176,
+                            "endingpage": 1176,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0558258.pdf",
+                            "book": "443",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CITIMORTGAGE INC",
+                            "grantee": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD"
+                        },
+                        {
+                            "entrynumber": "0556273",
+                            "dateofinstrument": "2001-10-16",
+                            "datetimeoffiling": "2001-11-19",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "EASEMENT",
+                            "beginningpage": 897,
+                            "endingpage": 900,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0556273.pdf",
+                            "book": "440",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A LIMITED LIABILITY CO*, ET AL, HOWARD G HARDEMAN FAMILY, LIMITED PARTNERSHIP",
+                            "grantee": "TETON COUNTY SCENIC PRESERVE*, TRUST"
+                        },
+                        {
+                            "entrynumber": "0539523",
+                            "dateofinstrument": "2001-04-12",
+                            "datetimeoffiling": "2001-04-20",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": 502,
+                            "endingpage": 502,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0539523.pdf",
+                            "book": "420",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CITIMORTGAGE INC",
+                            "grantee": "CARLMAN, LEONARD R ET AL, CARLMAN, ANNE LADD"
+                        },
+                        {
+                            "entrynumber": "0537886",
+                            "dateofinstrument": "2001-03-22",
+                            "datetimeoffiling": "2001-03-28",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MORTGAGE",
+                            "beginningpage": 389,
+                            "endingpage": 404,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0537886.pdf",
+                            "book": "418",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD",
+                            "grantee": "FIRST BANK OF IDAHO"
+                        },
+                        {
+                            "entrynumber": "0524026",
+                            "dateofinstrument": "2000-06-05",
+                            "datetimeoffiling": "2000-08-29",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "ASSIGNMENT",
+                            "beginningpage": 927,
+                            "endingpage": 928,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0524026.pdf",
+                            "book": "404",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "FIRST BANK OF IDAHO, CARLMAN, LEONARD R, CARLMAN, ANNE LADD",
+                            "grantee": "CITIMORTGAGE INC"
+                        },
+                        {
+                            "entrynumber": "0517701",
+                            "dateofinstrument": "2000-06-05",
+                            "datetimeoffiling": "2000-06-09",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MORTGAGE",
+                            "beginningpage": 245,
+                            "endingpage": 253,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0517701.pdf",
+                            "book": "400",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD",
+                            "grantee": "FIRST BANK OF IDAHO"
+                        },
+                        {
+                            "entrynumber": "0490505",
+                            "dateofinstrument": "1999-04-26",
+                            "datetimeoffiling": "1999-05-28",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "EASEMENT",
+                            "beginningpage": 737,
+                            "endingpage": 737,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0490505.pdf",
+                            "book": "377",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD",
+                            "grantee": "LOWER VALLEY POWER & LIGHT INC"
+                        },
+                        {
+                            "entrynumber": "0485829",
+                            "dateofinstrument": "1997-07-25",
+                            "datetimeoffiling": "1999-03-25",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "AFFIDAVIT",
+                            "beginningpage": 645,
+                            "endingpage": 645,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0485829.pdf",
+                            "book": "373",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0485828",
+                            "dateofinstrument": "1997-07-25",
+                            "datetimeoffiling": "1999-03-25",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "AFFIDAVIT",
+                            "beginningpage": 644,
+                            "endingpage": 644,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0485828.pdf",
+                            "book": "373",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A LIMITED LIABILITY CO",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0470127",
+                            "dateofinstrument": "1998-07-31",
+                            "datetimeoffiling": "1998-07-31",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "WARRANTY DEED",
+                            "beginningpage": 1081,
+                            "endingpage": 1082,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0470127.pdf",
+                            "book": "358",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY ET AL, LAZY J A LIMITED LIABILITY CO",
+                            "grantee": "CARLMAN, LEONARD R ET UX, CARLMAN, ANNE LADD"
+                        },
+                        {
+                            "entrynumber": "0454833",
+                            "dateofinstrument": "1997-12-23",
+                            "datetimeoffiling": "1997-12-26",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": 86,
+                            "endingpage": 86,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0454833.pdf",
+                            "book": "346",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "JACKSON STATE BANK",
+                            "grantee": "HOWARD G HARDEMAN LIMITED*, LIABILITY CO ET AL, LAZY J A LIMITED LIABILITY CO"
+                        },
+                        {
+                            "entrynumber": "0451381",
+                            "dateofinstrument": "1997-10-29",
+                            "datetimeoffiling": "1997-11-03",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "RELEASE",
+                            "beginningpage": 190,
+                            "endingpage": 190,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0451381.pdf",
+                            "book": "343",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "JACKSON STATE BANK",
+                            "grantee": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY ET AL, LAZY J A LIMITED LIABILITY CO"
+                        },
+                        {
+                            "entrynumber": "0450601",
+                            "dateofinstrument": "1997-10-08",
+                            "datetimeoffiling": "1997-10-21",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "LOAN MODIFY",
+                            "beginningpage": 556,
+                            "endingpage": 557,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0450601.pdf",
+                            "book": "342",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "JACKSON STATE BANK",
+                            "grantee": "HARDEMAN, HOWARD G ET AL DBA*, ROBERTSON, HELEN I, H H R RANCHES"
+                        },
+                        {
+                            "entrynumber": "0431412",
+                            "dateofinstrument": "1996-12-10",
+                            "datetimeoffiling": "1996-12-17",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "EASEMENT",
+                            "beginningpage": 110,
+                            "endingpage": 123,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0431412.pdf",
+                            "book": "329",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY ET AL, LAZY J A LIMITED LIABILITY CO",
+                            "grantee": "KEMMERER PROPERTIES"
+                        },
+                        {
+                            "entrynumber": "0428199",
+                            "dateofinstrument": "1996-10-17",
+                            "datetimeoffiling": "1996-10-21",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "POWER-ATTORNEY",
+                            "beginningpage": 116,
+                            "endingpage": 117,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0428199.pdf",
+                            "book": "327",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A LIMITED LIABILITY*, COMPANY",
+                            "grantee": "STEEG, RICHARD ET AL, STEEG, IRENE"
+                        },
+                        {
+                            "entrynumber": "0427813",
+                            "dateofinstrument": "1996-10-03",
+                            "datetimeoffiling": "1996-10-15",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "SECOND MORTGAGE",
+                            "beginningpage": 947,
+                            "endingpage": 948,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427813.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY ET AL, LAZY J A LIMITED LIABILITY*, COMPANY",
+                            "grantee": "JACKSON STATE BANK"
+                        },
+                        {
+                            "entrynumber": "0427812",
+                            "dateofinstrument": "1996-10-03",
+                            "datetimeoffiling": "1996-10-15",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "MORTGAGE",
+                            "beginningpage": 945,
+                            "endingpage": 946,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427812.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY ET AL, LAZY J A LIMITED LIABILITY*, COMPANY",
+                            "grantee": "JACKSON STATE BANK"
+                        },
+                        {
+                            "entrynumber": "0427672",
+                            "dateofinstrument": "1996-10-08",
+                            "datetimeoffiling": "1996-10-11",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "POWER-ATTORNEY",
+                            "beginningpage": 888,
+                            "endingpage": 889,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427672.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN LIMITED*, LIABILITY COMPANY",
+                            "grantee": "ROBERTSON, HELEN H ET AL, STEEG, RICHARD"
+                        },
+                        {
+                            "entrynumber": "0427323",
+                            "dateofinstrument": "1996-09-18",
+                            "datetimeoffiling": "1996-10-04",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "EASEMENT",
+                            "beginningpage": 555,
+                            "endingpage": 565,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427323.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A ET AL, HOWARD G HARDEMAN FAMILY*, LIMITED PARTNERSHIP",
+                            "grantee": "TETON COUNTY SCENIC PRESERVE*, TRUST"
+                        },
+                        {
+                            "entrynumber": "0427322",
+                            "dateofinstrument": "1996-09-27",
+                            "datetimeoffiling": "1996-10-04",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "COVENANTS",
+                            "beginningpage": 535,
+                            "endingpage": 554,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427322.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A ET AL, HOWARD G HARDEMAN FAMILY*, LIMITED PARTNERSHIP",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0427321",
+                            "dateofinstrument": "1996-09-18",
+                            "datetimeoffiling": "1996-10-04",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "AFFIDAVIT",
+                            "beginningpage": 534,
+                            "endingpage": 534,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427321.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "HOWARD G HARDEMAN FAMILY*, LIMITED PARTNERSHIP",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0427320",
+                            "dateofinstrument": "1996-09-27",
+                            "datetimeoffiling": "1996-10-04",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "AFFIDAVIT",
+                            "beginningpage": 533,
+                            "endingpage": 533,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://s3.us-west-2.amazonaws.com/tetoncountywy/clerk/pdf/0427320.pdf",
+                            "book": "326",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A",
+                            "grantee": "THE PUBLIC"
+                        },
+                        {
+                            "entrynumber": "0427319",
+                            "dateofinstrument": "1996-09-01",
+                            "datetimeoffiling": "1996-10-04",
+                            "statepin": "22-41-17-22-1-01-020",
+                            "description": "PLATS & MAPS",
+                            "beginningpage": 19,
+                            "endingpage": 19,
+                            "subdivision": "H H R RANCHES",
+                            "township": "",
+                            "range": "",
+                            "section": null,
+                            "record_url": "https://tetoncountywy.s3.us-west-2.amazonaws.com/no_doc_html/no_documents.html",
+                            "book": "2MAP",
+                            "legal": "LOT 12, H-H-R RANCHES",
+                            "grantor": "LAZY J A ET AL, HOWARD G HARDEMAN FAMILY*, LIMITED PARTNERSHIP",
+                            "grantee": "THE PUBLIC  PLAT #881"
+                        }
+                    ],
+                    "source": "teton_county_wy_clerk_api",
+                    "scraped": true,
+                    "timestamp": "2025-10-18T13:06:28.347489"
+                },
+                "source": "teton_county_wy_clerk_api",
+                "timestamp": "2025-11-02T10:46:06.729615"
+            },
+            "collected_at": "2025-10-18 19:06:28"
+        }
+    ],
+    "processing_time_ms": 7.21
+}

@@ -1,0 +1,159 @@
+{
+  "county": "teton_county_id",
+  "description": "Teton County Idaho data mapping configuration",
+  "mappings": {
+    "general_info": {
+      "county_state": {
+        "sources": [
+          { "path": "county", "priority": 1, "transform": "format_county_state" }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 },
+          { "path": "tax_data.owner_name", "priority": 2 }
+        ]
+      },
+      "physical_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 },
+          { "path": "tax_data.property_address", "priority": 2 }
+        ]
+      },
+      "mailing_address": {
+        "sources": [
+          { "path": "property_data.mailing_address", "priority": 1 }
+        ]
+      },
+      "county_parcel_id": {
+        "sources": [
+          { "path": "property_data.county_parcel_id", "priority": 1 }
+        ]
+      },
+      "tax_id": {
+        "sources": [
+          { "path": "tax_data.tax_id", "priority": 1 },
+          { "path": "property_data.tax_id", "priority": 2 }
+        ]
+      },
+      "legal_description": {
+        "sources": [
+            { "path": "property_data.legal.location", "priority": 1 }
+        ]
+      },
+      "acres": {
+        "sources": [
+          { "path": "property_data.total_acres", "priority": 1 }
+        ]
+      }
+    },
+    "tax": {
+      "tax_id": { "sources": [ { "path": "tax_data.tax_id", "priority": 1 } ] },
+      "tax_year": { "sources": [ { "path": "tax_data.current_tax.tax_year", "priority": 1 } ] },
+      "tax_amount": { "sources": [ { "path": "tax_data.current_tax.total_tax_levied", "priority": 1 } ] },
+      "status": { "sources": [ { "path": "tax_data.current_tax.status", "priority": 1 } ] },
+      "tax_district": { "sources": [ { "path": "tax_data.tax_district", "priority": 1 } ] },
+      "owner_name": { "sources": [ { "path": "tax_data.owner_name", "priority": 1 } ] },
+      "property_address": { "sources": [ { "path": "tax_data.property_address", "priority": 1 } ] },
+      "total_tax_levied": { "sources": [ { "path": "tax_data.current_tax.total_tax_levied", "priority": 1 } ] },
+      "tax_received": { "sources": [ { "path": "tax_data.current_tax.tax_received", "priority": 1 } ] },
+      "amount_due": { "sources": [ { "path": "tax_data.current_tax.amount_due", "priority": 1 } ] },
+      "first_half_levied": { "sources": [ { "path": "tax_data.current_tax.first_half.levied", "priority": 1 } ] },
+      "first_half_paid": { "sources": [ { "path": "tax_data.current_tax.first_half.paid", "priority": 1 } ] },
+      "first_half_balance": { "sources": [ { "path": "tax_data.current_tax.first_half.balance", "priority": 1 } ] },
+      "second_half_levied": { "sources": [ { "path": "tax_data.current_tax.second_half.levied", "priority": 1 } ] },
+      "second_half_paid": { "sources": [ { "path": "tax_data.current_tax.second_half.paid", "priority": 1 } ] },
+      "second_half_balance": { "sources": [ { "path": "tax_data.current_tax.second_half.balance", "priority": 1 } ] }
+    },
+    "property_details": {
+      "county_parcel_id": {
+        "sources": [
+          { "path": "property_data.county_parcel_id", "priority": 1 }
+        ]
+      },
+      "tax_id": {
+        "sources": [
+          { "path": "property_data.tax_id", "priority": 1 }
+        ]
+      },
+      "physical_address": {
+        "sources": [
+          { "path": "property_data.physical_address", "priority": 1 }
+        ]
+      },
+      "mailing_address": {
+        "sources": [
+          { "path": "property_data.mailing_address", "priority": 1 }
+        ]
+      },
+      "owner_name": {
+        "sources": [
+          { "path": "property_data.owner_name", "priority": 1 }
+        ]
+      },
+      "deed": {
+        "sources": [
+          { "path": "property_data.deed", "priority": 1 }
+        ]
+      },
+      "total_property_value": {
+        "sources": [
+          { "path": "property_data.value_summary.total_value", "priority": 1 }
+        ]
+      },
+      "land_value": {
+        "sources": [
+          { "path": "property_data.value_summary.land", "priority": 1 }
+        ]
+      },
+      "developments_value": {
+        "sources": [
+          { "path": "property_data.value_summary.developments", "priority": 1 }
+        ]
+      },
+      "total_acreage": {
+        "sources": [
+          { "path": "property_data.total_acres", "priority": 1 }
+        ]
+      },
+      "developments": {
+        "sources": [
+          { "path": "property_data.developments", "priority": 1, "transform": "standardize_developments" }
+        ]
+      },
+      "num_developments": {
+        "sources": [
+          { "path": "property_data.developments", "priority": 1, "transform": "count_developments" }
+        ]
+      }
+    },
+    "clerk": {
+      "deeds": {
+        "sources": [
+          { "path": "null", "priority": 1, "note": "Not available for Teton County Idaho" }
+        ]
+      },
+      "mortgages": {
+        "sources": [
+          { "path": "null", "priority": 1, "note": "Not available for Teton County Idaho" }
+        ]
+      },
+      "liens": {
+        "sources": [
+          { "path": "null", "priority": 1, "note": "Not available for Teton County Idaho" }
+        ]
+      }
+    },
+    "development": {
+      "id": { "sources": [{ "path": "development.Building ID", "priority": 1 }] },
+      "property_type": { "sources": [{ "path": "development.Property Type", "priority": 1 }] },
+      "description": { "sources": [{ "path": "development.Description", "priority": 1 }] },
+      "stories": { "sources": [{ "path": "development.Stories", "priority": 1 }] },
+      "sq_ft": { "sources": [{ "path": "development.Total Sq Ft", "priority": 1 }] },
+      "bedrooms": { "sources": [{ "path": "development.Bedrooms", "priority": 1 }] },
+      "bathrooms": { "sources": [{ "path": "development.Bathrooms", "priority": 1 }] },
+      "year_built": { "sources": [{ "path": "development.Year Built", "priority": 1 }] },
+      "improvement_value": { "sources": [{ "path": "development.Improvement Value", "priority": 1 }] }
+    }
+  }
+}

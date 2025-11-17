@@ -30,3 +30,8 @@ Thumbs.db
 *.backup.*
 property_data.db
 *.db
+
+# Tiles (large generated files)
+tiles/
+*.mbtiles
+*.pmtiles
