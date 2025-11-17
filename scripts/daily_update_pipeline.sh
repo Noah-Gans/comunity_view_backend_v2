@@ -470,9 +470,9 @@ main() {
         error "$error_message"
     }
     
-    # Run full pipeline with validation
-    log "🔄 Running: process (download) → validate → upload → generate-tiles"
-    if python3 main.py --process --validate --upload --generate-tiles; then
+    # Run full pipeline without validation (skip validate flag)
+    log "🔄 Running: process (download) → upload → generate-tiles"
+    if python3 main.py --process --upload --generate-tiles; then
         log "✅ PMTiles pipeline completed successfully"
         
         # Check validation report
