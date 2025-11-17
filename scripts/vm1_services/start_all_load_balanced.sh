@@ -27,9 +27,15 @@ pkill -f "start_report_multi" 2>/dev/null
 
 sleep 2
 
-# Start Martin Tile Server (port 9000)
-echo "🗺️  Starting Martin Tile Server (port 9000)..."
-screen -S martin -d -m bash -c "cd '$PROJECT_ROOT' && ./scripts/vm1_services/start_martin.sh"
+# Start Martin Tile Server (port 9000) - only if PMTiles file exists
+PMTILES_FILE=$(grep -A 5 "pmtiles:" "$PROJECT_ROOT/martin_config.yaml" 2>/dev/null | grep "combined_ownership" | awk '{print $2}' | tr -d '"' || echo "tiles/combined_ownership.pmtiles")
+if [ -f "$PROJECT_ROOT/$PMTILES_FILE" ]; then
+    echo "🗺️  Starting Martin Tile Server (port 9000)..."
+    screen -S martin -d -m bash -c "cd '$PROJECT_ROOT' && ./scripts/vm1_services/start_martin.sh"
+else
+    echo "⚠️  Skipping Martin Tile Server - PMTiles file not found: $PMTILES_FILE"
+    echo "   Generate PMTiles first, then start Martin separately."
+fi
 
 # Start Search API (single instance on port 9001)
 echo "🔍 Starting Search API (port 9001)..."
