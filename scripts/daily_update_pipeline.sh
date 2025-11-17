@@ -471,8 +471,8 @@ main() {
     }
     
     # Run full pipeline with validation
-    log "🔄 Running: process → validate → upload → generate-tiles"
-    if python3 main.py  --process  --generate-tiles; then
+    log "🔄 Running: process (download) → validate → upload → generate-tiles"
+    if python3 main.py --process --validate --upload --generate-tiles; then
         log "✅ PMTiles pipeline completed successfully"
         
         # Check validation report
