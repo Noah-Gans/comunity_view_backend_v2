@@ -37,8 +37,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize search engine
-search_engine = SearchEngine()
+# Initialize search engine (will be loaded in background)
+search_engine = None
 
 # Pydantic models for API responses
 class SearchResult(BaseModel):
@@ -85,8 +85,8 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "search_index_loaded": search_engine.search_data is not None,
-        "search_index_size": len(search_engine.search_data) if search_engine.search_data else 0
+        "search_index_loaded": search_engine is not None and search_engine.search_data is not None,
+        "search_index_size": len(search_engine.search_data) if search_engine and search_engine.search_data else 0
     }
 
 @app.get("/search", response_model=SearchResponse)
@@ -149,6 +149,10 @@ async def search_properties(
         if sort_by:
             advanced_sort = {"field": sort_by, "order": sort_order or "desc"}
         
+        # Check if search engine is ready
+        if search_engine is None:
+            raise HTTPException(status_code=503, detail="Search engine is still initializing. Please try again in a moment.")
+        
         # Perform search
         start_time = datetime.now()
         results = search_engine.search(
@@ -197,6 +201,8 @@ async def search_properties(
 async def get_search_stats():
     """Get statistics about the search index"""
     try:
+        if search_engine is None:
+            raise HTTPException(status_code=503, detail="Search engine is still initializing. Please try again in a moment.")
         stats = search_engine.get_search_stats()
         
         # Check if search index file exists and get its modification time
@@ -220,6 +226,8 @@ async def get_search_stats():
 async def reload_search_index():
     """Reload the search index from file"""
     try:
+        if search_engine is None:
+            raise HTTPException(status_code=503, detail="Search engine is still initializing. Please try again in a moment.")
         search_engine.reload_search_data()
         return {
             "message": "Search index reloaded successfully",
@@ -246,7 +254,11 @@ async def generate_search_index():
         
         if search_index_path and os.path.exists(search_index_path):
             # Reload the search engine with new data
-            search_engine.reload_search_data()
+            global search_engine
+            if search_engine is None:
+                search_engine = SearchEngine()
+            else:
+                search_engine.reload_search_data()
             
             return {
                 "message": "Search index generated successfully",
@@ -267,8 +279,12 @@ async def reload_search_index():
     Internal endpoint to reload the search index after updates
     """
     try:
-        logger.info("🔄 Reloading search index...")
-        search_engine.reload_search_data()
+        global search_engine
+        if search_engine is None:
+            search_engine = SearchEngine()
+        else:
+            logger.info("🔄 Reloading search index...")
+            search_engine.reload_search_data()
         
         return {
             "status": "success",
@@ -285,13 +301,20 @@ async def reload_search_index():
 @app.on_event("startup")
 async def startup_event():
     """Initialize the search engine on startup"""
+    global search_engine
     logger.info("🚀 Starting Property Search API...")
     
     # Check if search index exists
     search_index_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "search_index.json")
     if not os.path.exists(search_index_path):
         logger.warning("⚠️  Search index not found. Run /generate-search-index to create it.")
+        search_engine = SearchEngine()
     else:
+        logger.info("📦 Loading search index (this may take a moment)...")
+        # Initialize search engine in background
+        import asyncio
+        loop = asyncio.get_event_loop()
+        search_engine = await loop.run_in_executor(None, SearchEngine)
         logger.info("✅ Search index loaded successfully")
 
 if __name__ == "__main__":
