@@ -27,6 +27,10 @@ pkill -f "start_report_multi" 2>/dev/null
 
 sleep 2
 
+# Start Martin Tile Server (port 9000)
+echo "🗺️  Starting Martin Tile Server (port 9000)..."
+screen -S martin -d -m bash -c "cd '$PROJECT_ROOT' && ./scripts/vm1_services/start_martin.sh"
+
 # Start Search API (single instance on port 9001)
 echo "🔍 Starting Search API (port 9001)..."
 screen -S search_api -d -m bash -c "cd '$PROJECT_ROOT' && source venv/bin/activate && python3 scripts/vm1_services/start_search_api.py"

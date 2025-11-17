@@ -5,6 +5,7 @@
 echo "🛑 Stopping All API Services..."
 
 # Stop screen sessions
+screen -S martin -X quit 2>/dev/null && echo "✅ Stopped Martin screen session"
 screen -S search_api -X quit 2>/dev/null && echo "✅ Stopped Search API screen session"
 screen -S property_api -X quit 2>/dev/null && echo "✅ Stopped Property API screen session"
 screen -S report_api -X quit 2>/dev/null && echo "✅ Stopped Report API screen session"
