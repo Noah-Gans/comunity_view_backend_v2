@@ -27,5 +27,9 @@ if __name__ == "__main__":
     print("🚀 Starting Property Search API...")
     print(f"📁 Working directory: {os.getcwd()}")
     
+    # Add search_api directory to Python path
+    if search_api_dir not in sys.path:
+        sys.path.insert(0, search_api_dir)
+    
     # Use uvicorn to run the app module directly
-    uvicorn.run("app:app", host="0.0.0.0", port=9001, app_dir=search_api_dir) 
+    uvicorn.run("app:app", host="0.0.0.0", port=9001) 
